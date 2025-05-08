@@ -3,7 +3,7 @@
 </div>
 
 
-# RIFT: Closed-loop Fine-Tuning for Realistic and Controllable Traffic in Interactive Scenarios
+# RIFT: Closed-loop RL Fine-Tuning for Realistic and Controllable Traffic Simulation
 
 <div align="left">
     <a href="https://arxiv.org/abs/2505.03344"><img src="https://img.shields.io/badge/Paper-arXiv-b31b1b?logo=arxiv&logoColor=white?style=flat-square" alt="Custom badge" style="width: 110px;"></a>     
