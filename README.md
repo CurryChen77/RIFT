@@ -28,7 +28,7 @@
 
 This repository contains the implementation of the paper.
 
-> RIFT: Closed-loop Fine-Tuning for Realistic and Controllable Traffic in Interactive Scenarios<br>
+> RIFT: Closed-loop RL Fine-Tuning for Realistic and Controllable Traffic Simulation<br>
 >
 > [Keyu Chen](https://currychen77.github.io/)<sup>1</sup> , [Wenchao Sun](https://scholar.google.com/citations?user=yd-sMoQAAAAJ&hl=zh-CN&oi=ao)<sup>1</sup>,  [Hao Cheng](https://github.com/AutoChengh)<sup>1</sup>, [Sifa Zheng](http://www.svm.tsinghua.edu.cn/essay/80/1835.html)<sup>1</sup><br>
 >
