@@ -69,7 +69,7 @@ class CollectBuffer(BaseBuffer):
         if self.ego_policy_type == 'rl':
             # convert ego action network's raw output to (acceleration, steering)
             ego_action = self.EgoAction.convert_raw_action(raw_action)
-        elif self.ego_policy_type == 'plant' or self.ego_policy_type == 'rule-based':
+        elif self.ego_policy_type == 'plant' or self.ego_policy_type == 'rule-based' or self.ego_policy_type == 'e2e':
             # convert the rule-based ego action (throttle, steering) to (acceleration, steering)
             ego_action = self.EgoAction.inverse_rule_action(raw_action[0], raw_action[1], raw_action[2])
         else:

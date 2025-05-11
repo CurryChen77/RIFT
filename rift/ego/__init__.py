@@ -6,6 +6,8 @@
 """
 
 # for planning scenario
+
+from rift.ego.b2d.e2e_agent import VAD
 from rift.ego.rl.ppo import PPO
 from rift.ego.behavior import CarlaBehaviorAgent
 from rift.ego.expert_disturb import CarlaExpertDisturbAgent
@@ -21,4 +23,5 @@ EGO_POLICY_LIST = {
     'plant': PlanT,
     'expert_disturb': CarlaExpertDisturbAgent,
     'pdm_lite': PDM_LITE,
+    'vad': VAD,
 }

@@ -195,27 +195,27 @@ if __name__ == '__main__':
         runner.run()
     except (SpawnRuntimeError, RuntimeError):
         runner.close()
-        print("\n>> An runtime error occurred during runner.run():")
+        print(">> An runtime error occurred during runner.run():")
         traceback.print_exc()
         err_list.append(traceback.format_exc())
         sys.exit(99)
     except KeyboardInterrupt:
         runner.close()
         runner.world.tick()  # normal exit need to tick the world to ensure that all destroy commands are executed
-        print("\n>> KeyboardInterrupt: exiting")
+        print(">> KeyboardInterrupt: exiting")
         err_list.append(traceback.format_exc())
         sys.exit(1)
     except Exception as e:
         if "TimeoutException" in str(e):
             runner.close()
-            print("\n>> A TimeoutException occurred during runner.run():")
+            print(">> A TimeoutException occurred during runner.run():")
             print("Caught exception", e, flush=True)
             traceback.print_exc()
             err_list.append(traceback.format_exc())
             sys.exit(99)
         else:
             runner.close()
-            print("\n>> An error occurred during runner.run():")
+            print(">> An error occurred during runner.run():")
             print("Caught exception", e, flush=True)
             traceback.print_exc()
             err_list.append(traceback.format_exc())

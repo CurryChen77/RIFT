@@ -23,17 +23,17 @@ class CarlaExpertDisturbAgent(EgoBasePolicy):
         self.steer_disturb = config['steer_disturb']
         self.brake_disturb = config['brake_disturb']
         self.route = None
-        self.controller_list = []
+        self.planner_list = []
         for _ in range(config['num_scenario']):
             controller = AutoPilot(self.config, self.logger)  # initialize the controller
-            self.controller_list.append(controller)
+            self.planner_list.append(controller)
 
-    def set_ego_and_route(self, ego_vehicles, info):
+    def set_ego_and_route(self, ego_vehicles, info, sampled_scenario_configs):
         self.ego_vehicles = ego_vehicles
         for i, ego in enumerate(ego_vehicles):
             gps_route = info[i]['gps_route']  # the gps route
             route = info[i]['route']  # the world coord route
-            self.controller_list[i].set_planner(ego, gps_route, route)  # set route for each controller
+            self.planner_list[i].set_planner(ego, gps_route, route)  # set route for each controller
 
     def get_action(self, obs, infos, deterministic=False) -> Dict[str, np.ndarray]:
         actions = {}
@@ -42,7 +42,7 @@ class CarlaExpertDisturbAgent(EgoBasePolicy):
             steer_disturb = np.random.uniform(self.steer_disturb[0], self.steer_disturb[1])
             brake_disturb = np.random.uniform(self.brake_disturb[0], self.brake_disturb[1])
             # select the controller that matches the env_id
-            control = self.controller_list[info['env_id']].run_step(obs[i])
+            control = self.planner_list[info['env_id']].run_step(obs[i])
             # when the expert throttle is not 0, disturb the throttle level
             throttle = min(max(control.throttle + throttle_disturb, 0.01), 1) if control.throttle > 0.01 else control.throttle
             # disturb steer

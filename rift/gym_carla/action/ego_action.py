@@ -28,7 +28,7 @@ class EgoAction(BaseAction):
     def convert_action(self, action, allow_reverse=False):
         if self.policy_type == 'rl':
             return self.convert_learnable_action(action, allow_reverse)
-        elif self.policy_type == 'plant' or self.policy_type == 'rule-based':
+        elif self.policy_type == 'plant' or self.policy_type == 'rule-based' or self.policy_type == 'e2e':
             return self.convert_rule_action(action)
         else:
             raise NotImplementedError(f"Unsupported ego policy type: {self.policy_type}.")

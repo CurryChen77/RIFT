@@ -14,7 +14,7 @@ class EgoBasePolicy:
         self.ego_vehicles = None
         self.config = config
 
-    def set_ego_and_route(self, ego_vehicles, info):
+    def set_ego_and_route(self, ego_vehicles, info, sampled_scenario_configs):
         self.ego_vehicles = ego_vehicles
     
     def set_buffer(self, buffer, total_routes):
@@ -37,6 +37,9 @@ class EgoBasePolicy:
         pass
 
     def save_model(self, episode):
+        pass
+    
+    def clean_up(self):
         pass
 
     def finish(self):

@@ -21,23 +21,23 @@ class CarlaBehaviorAgent(EgoBasePolicy):
         self.logger = logger
         self.num_scenario = config['num_scenario']
         self.route = None
-        self.controller_list = []
+        self.planner_list = []
         self.behavior = config['behavior']
 
-    def set_ego_and_route(self, ego_vehicles, info):
+    def set_ego_and_route(self, ego_vehicles, info, sampled_scenario_configs):
         self.ego_vehicles = ego_vehicles
-        self.controller_list = []
+        self.planner_list = []
         for e_i in range(len(ego_vehicles)):
             controller = BehaviorAgent(self.ego_vehicles[e_i], behavior=self.behavior)
             dest_waypoint = info[e_i]['route_waypoints'][-1]  # the destination of the ego vehicle
             location = dest_waypoint.transform.location
             controller.set_destination(location)  # set route for each controller
-            self.controller_list.append(controller)
+            self.planner_list.append(controller)
 
     def get_action(self, obs, infos, deterministic=False) -> Dict[str, np.ndarray]:
         actions = {}
         for info in infos:
-            controller = self.controller_list[info['env_id']]
+            controller = self.planner_list[info['env_id']]
             # the waypoint list in rift and carla's behavior agent is different
             # for the behavior agent, the goal may be reached (no more waypoints to chase), but rift still got waypoints
             if controller.done():

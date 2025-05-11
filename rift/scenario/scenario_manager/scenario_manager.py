@@ -167,7 +167,6 @@ class ScenarioManager(object):
     def get_update(self, timestamp, ego_action, cbv_actions):
         if self._timestamp_last_run < timestamp.elapsed_seconds and self.running:
             self._timestamp_last_run = timestamp.elapsed_seconds
-            GameTime.on_carla_tick(timestamp)
 
             # update ego action and cbv action
             self.route_scenario.update_actions(ego_action, cbv_actions)

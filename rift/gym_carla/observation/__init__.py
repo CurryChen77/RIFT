@@ -13,6 +13,7 @@ OBSERVATION_LIST = {
     'cbv_no_obs': CBVBaseObservation,
     'ego_simple_obs': EgoSimpleObservation,
     'ego_normal_obs': EgoNormalObservation,
+    'ego_e2e_obs': EgoBaseObservation,
     'cbv_normal_obs': CBVNormalObservation,
     'cbv_pluto_obs': CBVPlutoObservation,
     'ego_pluto_obs': EgoPlutoObservation,

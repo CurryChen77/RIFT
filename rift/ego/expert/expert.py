@@ -20,23 +20,23 @@ class CarlaExpertAgent(EgoBasePolicy):
         self.config = config
         self.logger = logger
         self.route = None
-        self.controller_list: List[AutoPilot] = []
+        self.planner_list: List[AutoPilot] = []
         for _ in range(config['num_scenario']):
             controller = AutoPilot(self.config, self.logger)  # initialize the controller
-            self.controller_list.append(controller)
+            self.planner_list.append(controller)
 
-    def set_ego_and_route(self, ego_vehicles, info):
+    def set_ego_and_route(self, ego_vehicles, info, sampled_scenario_configs):
         self.ego_vehicles = ego_vehicles
         for i, ego in enumerate(ego_vehicles):
             gps_route = info[i]['gps_route']  # the gps route
             route = info[i]['route']  # the world coord route
-            self.controller_list[i].set_planner(ego, gps_route, route)  # set route for each controller
+            self.planner_list[i].set_planner(ego, gps_route, route)  # set route for each controller
 
     def get_action(self, obs, infos, deterministic=False) -> Dict[str, np.ndarray]:
         actions = {}
         for i, info in enumerate(infos):
             # select the controller that matches the env_id
-            control = self.controller_list[info['env_id']].run_step(obs[i])
+            control = self.planner_list[info['env_id']].run_step(obs[i])
             throttle = control.throttle
             steer = control.steer
             brake = control.brake

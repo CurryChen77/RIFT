@@ -171,3 +171,5 @@ docker/
 /data/map_data/anno/*.png
 
 /ablation/*
+
+rift/ego/b2d/ckpt/vad_b2d_base.pth

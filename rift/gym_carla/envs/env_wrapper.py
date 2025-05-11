@@ -12,6 +12,9 @@ import carla
 import copy
 import numpy as np
 
+from rift.cbv.planning.base_policy import CBVBasePolicy
+from rift.cbv.recognition.base_cbv import BaseCBVRecog
+from rift.ego.base_policy import EgoBasePolicy
 from rift.gym_carla.envs.carla_env import CarlaEnv
 from rift.scenario.tools.carla_data_provider import CarlaDataProvider
 from rift.scenario.tools.route_scenario_configuration import RouteScenarioConfiguration
@@ -26,7 +29,7 @@ class VectorWrapper():
     """
     env_list: List[CarlaEnv]
 
-    def __init__(self, env_params, statistics_manager: StatisticsManager, config, world, cbv_policy, cbv_recog_policy, logger: Logger):
+    def __init__(self, env_params, statistics_manager: StatisticsManager, config, world, ego_policy, cbv_policy, cbv_recog_policy, logger: Logger):
         self.logger = logger
         self.world = world
         self.num_scenario = config['num_scenario']  # default 2
@@ -38,8 +41,9 @@ class VectorWrapper():
         self.mode = env_params['mode']
 
         self.statistics_manager = statistics_manager
-        self.cbv_policy = cbv_policy
-        self.cbv_recog_policy = cbv_recog_policy
+        self.ego_policy: EgoBasePolicy = ego_policy
+        self.cbv_policy: CBVBasePolicy = cbv_policy
+        self.cbv_recog_policy: BaseCBVRecog = cbv_recog_policy
 
         self.env_list = []
         for i in range(self.num_scenario):
@@ -100,6 +104,8 @@ class VectorWrapper():
             CBVs_obs_list.append(CBVs_obs)
             info_list.append(info)
 
+        timestamp = self.world.get_snapshot().timestamp
+        GameTime.on_carla_tick(timestamp)
         CarlaDataProvider.on_carla_tick()  # tick since each small scenario got several warm-up ticks
 
         if self.spectator:
@@ -165,6 +171,9 @@ class VectorWrapper():
         }
 
         data_dict = defaultdict(lambda: list())
+        
+        timestamp = self.world.get_snapshot().timestamp
+        GameTime.on_carla_tick(timestamp)
         # After tick, update all the actors' info
         CarlaDataProvider.on_carla_tick()
 
@@ -210,6 +219,12 @@ class VectorWrapper():
             return False
 
     def clean_up(self):
+        # clean up for ego policy
+        self.ego_policy.clean_up()
+
+        # clean up for CBV policy
+        self.cbv_policy.clean_up()
+
         # stop sensor objects
         for e_i in range(self.num_scenario):
             self.env_list[e_i].clean_up()

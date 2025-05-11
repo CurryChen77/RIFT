@@ -45,5 +45,8 @@ class CBVBasePolicy:
     def save_model(self, episode):
         pass
 
+    def clean_up(self):
+        pass
+
     def finish(self):
         pass

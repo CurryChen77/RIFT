@@ -197,7 +197,7 @@ class CarlaRunner:
             ego_obs_list, CBVs_obs_list, info_list = self.env.reset(sampled_scenario_configs)
 
             # get ego vehicle from scenario
-            self.ego_policy.set_ego_and_route(self.env.get_ego_vehicles(), info_list)
+            self.ego_policy.set_ego_and_route(self.env.get_ego_vehicles(), info_list, sampled_scenario_configs)
 
             # start loop
             CBV_episode_reward = []
@@ -260,7 +260,7 @@ class CarlaRunner:
             ego_obs_list, CBVs_obs_list, info_list = self.env.reset(sampled_scenario_configs)
 
             # get ego vehicle from scenario
-            self.ego_policy.set_ego_and_route(self.env.get_ego_vehicles(), info_list)
+            self.ego_policy.set_ego_and_route(self.env.get_ego_vehicles(), info_list, sampled_scenario_configs)
 
             # start loop
             ego_episode_reward = []
@@ -322,7 +322,7 @@ class CarlaRunner:
             ego_obs_list, CBVs_obs_list, info_list = self.env.reset(sampled_scenario_configs)
 
             # get ego vehicle from scenario
-            self.ego_policy.set_ego_and_route(self.env.get_ego_vehicles(), info_list)
+            self.ego_policy.set_ego_and_route(self.env.get_ego_vehicles(), info_list, sampled_scenario_configs)
 
             while not self.env.all_scenario_done():
                 # get action from agent policy and scenario policy (assume using one batch)
@@ -373,11 +373,11 @@ class CarlaRunner:
             ego_obs_list, CBVs_obs_list, info_list = self.env.reset(sampled_scenario_configs)
 
             # get ego vehicle from scenario
-            self.ego_policy.set_ego_and_route(self.env.get_ego_vehicles(), info_list)
+            self.ego_policy.set_ego_and_route(self.env.get_ego_vehicles(), info_list, sampled_scenario_configs)
 
             # start loop
             while not self.env.all_scenario_done():
-                # get action from agent policy and scenario policy (assume using one batch)
+                # get action from AV policy and CBV policy (assume using one batch)
                 ego_actions_dict = self.ego_policy.get_action(ego_obs_list, info_list, deterministic=False)
                 CBVs_actions_dict = self.cbv_policy.get_action(CBVs_obs_list, info_list, deterministic=False)
 
@@ -503,6 +503,7 @@ class CarlaRunner:
                 self.statistics_manager,
                 self.config,
                 self.world,
+                self.ego_policy,
                 self.cbv_policy,
                 self.cbv_recog_policy,
                 self.logger,

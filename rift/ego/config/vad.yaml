@@ -1,0 +1,16 @@
+policy_name: 'vad'
+policy_type: 'e2e'
+model_type: 'ego'
+results_folder_path: ''
+obs_type: 'ego_e2e_obs'
+ego_obs_dim: None
+ego_action_dim: 3
+
+save_freq: 10
+buffer_capacity: 10000
+buffer_start_training: 100
+
+config_path: 'rift/ego/b2d/adzoo/vad/configs/VAD/VAD_base_e2e_b2d.py'
+ckpt_path: 'rift/ego/b2d/ckpt/vad_b2d_base.pth'
+
+save_result: True
