@@ -1,4 +1,4 @@
-policy_name: 'vad'
+policy_name: 'uniad'
 policy_type: 'e2e'
 model_type: 'ego'
 results_folder_path: ''
@@ -10,7 +10,7 @@ save_freq: 10
 buffer_capacity: 10000
 buffer_start_training: 100
 
-config_path: 'rift/ego/b2d/adzoo/vad/configs/VAD/VAD_base_e2e_b2d.py'
-ckpt_path: 'rift/ego/b2d/ckpt/vad/vad_b2d_base.pth'
+config_path: 'rift/ego/b2d/adzoo/uniad/configs/stage2_e2e/base_e2e_b2d.py'
+ckpt_path: 'rift/ego/b2d/ckpt/uniad/uniad_base_b2d.pth'
 
 save_result: True

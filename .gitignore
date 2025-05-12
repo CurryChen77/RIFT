@@ -172,4 +172,5 @@ docker/
 
 /ablation/*
 
-rift/ego/b2d/ckpt/vad_b2d_base.pth
+rift/ego/b2d/ckpt/vad/
+rift/ego/b2d/ckpt/uniad/

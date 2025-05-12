@@ -7,10 +7,9 @@
 from typing import Dict, List
 
 import numpy as np
-
 from rift.ego.base_policy import EgoBasePolicy
-
 from rift.ego.b2d.team_code.vad_b2b_agent import VadAgent
+from team_code.uniad_b2d_agent import UniadAgent
 from rift.ego.b2d.utils.agent_wrapper import AgentWrapper, validate_sensor_configuration
 from rift.ego.b2d.utils.watchdog import Watchdog
 from rift.scenario.tools.route_scenario_configuration import RouteScenarioConfiguration
@@ -80,6 +79,29 @@ class VAD(E2E_Agent):
         for _ in range(config['num_scenario']):
             # init the AV planner
             planner = VadAgent(
+                config_path=config['config_path'],
+                ckpt_path=config['ckpt_path'],
+                save_result=config['save_result'],
+                logger=self.logger
+                )
+            # validate the sensor configuration
+            sensors = planner.sensors()
+            track = planner.track 
+            validate_sensor_configuration(sensors, track, 'SENSORS')
+            # store the wrapper planner
+            planner_wrapper = AgentWrapper(planner)
+            self.planner_list.append(planner_wrapper)
+
+class UniAD(E2E_Agent):
+    name = 'uniad'
+    type = 'learnable'
+
+    def __init__(self, config, logger):
+        super().__init__(config, logger)
+        # init the AV method        
+        for _ in range(config['num_scenario']):
+            # init the AV planner
+            planner = UniadAgent(
                 config_path=config['config_path'],
                 ckpt_path=config['ckpt_path'],
                 save_result=config['save_result'],

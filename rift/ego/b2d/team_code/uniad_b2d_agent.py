@@ -1,12 +1,11 @@
-#!/usr/bin/env python
-# -*- encoding: utf-8 -*-
+import os
 import json
 import shutil
 import time
 import cv2
 import carla
+from collections import deque
 import math
-from scipy.optimize import fsolve
 import torch
 import carla
 import numpy as np
@@ -14,24 +13,21 @@ from PIL import Image
 from torchvision import transforms as T
 from team_code.pid_controller import PIDController
 from team_code.planner import RoutePlanner
+from rift.ego.b2d.utils import autonomous_agent
+from rift.scenario.tools.carla_data_provider import CarlaDataProvider
 from mmcv import Config
 from mmcv.models import build_model
-from mmcv.utils import (get_dist_info, init_dist, load_checkpoint,
-                        wrap_fp16_model)
+from mmcv.utils import (get_dist_info, init_dist, load_checkpoint, wrap_fp16_model)
 from mmcv.datasets.pipelines import Compose
 from mmcv.parallel.collate import collate as  mm_collate_to_batch_form
 from mmcv.core.bbox import get_box_type
 from pyquaternion import Quaternion
-
-from rift.ego.b2d.utils import autonomous_agent
-from rift.scenario.tools.carla_data_provider import CarlaDataProvider
-
+from scipy.optimize import fsolve
 
 def get_entry_point():
-    return 'VadAgent'
+    return 'UniadAgent'
 
-
-class VadAgent(autonomous_agent.AutonomousAgent):
+class UniadAgent(autonomous_agent.AutonomousAgent):
     def __init__(self, config_path, ckpt_path, save_result, logger):
         super().__init__(save_result=save_result)
         # init the config
@@ -40,34 +36,50 @@ class VadAgent(autonomous_agent.AutonomousAgent):
         self.logger = logger
         cfg = Config.fromfile(self.config_path)
         # init the model and load the ckpt
+        cfg.model['motion_head']['anchor_info_path'] = os.path.join('rift/ego/b2d',cfg.model['motion_head']['anchor_info_path'])
+        # if hasattr(cfg, 'plugin'):
+        #     if cfg.plugin:
+        #         import importlib
+        #         if hasattr(cfg, 'plugin_dir'):
+        #             plugin_dir = cfg.plugin_dir
+        #             plugin_dir = os.path.join("Bench2DriveZoo", plugin_dir)
+        #             _module_dir = os.path.dirname(plugin_dir)
+        #             _module_dir = _module_dir.split('/')
+        #             _module_path = _module_dir[0]
+        #             for m in _module_dir[1:]:
+        #                 _module_path = _module_path + '.' + m
+        #             print(_module_path)
+        #             plg_lib = importlib.import_module(_module_path)  
+  
         self.model = build_model(cfg.model, train_cfg=cfg.get('train_cfg'), test_cfg=cfg.get('test_cfg'))
         checkpoint = load_checkpoint(self.model, self.ckpt_path, map_location='cpu', strict=True)
-        self.logger.log(f'>> load VAD checkpoint from {self.ckpt_path}', color='yellow')
+        self.logger.log(f'>> load UniAD checkpoint from {self.ckpt_path}', color='yellow')
         self.model.cuda()
         self.model.eval()
         self.inference_only_pipeline = []
         for inference_only_pipeline in cfg.inference_only_pipeline:
-            if inference_only_pipeline["type"] not in ['LoadMultiViewImageFromFilesInCeph','LoadMultiViewImageFromFiles']:
+            if inference_only_pipeline["type"] not in ['LoadMultiViewImageFromFilesInCeph']:
                 self.inference_only_pipeline.append(inference_only_pipeline)
         self.inference_only_pipeline = Compose(self.inference_only_pipeline)
 
-        # init the parameters
+        # write extrinsics directly
         self._im_transform = T.Compose([T.ToTensor(), T.Normalize(mean=[0.485,0.456,0.406], std=[0.229,0.224,0.225])])
+        self.last_steers = deque()
         self.lat_ref, self.lon_ref = 42.0, 2.0
         self.lidar2img = {
         'CAM_FRONT':np.array([[ 1.14251841e+03,  8.00000000e+02,  0.00000000e+00, -9.52000000e+02],
-                              [ 0.00000000e+00,  4.50000000e+02, -1.14251841e+03, -8.09704417e+02],
-                              [ 0.00000000e+00,  1.00000000e+00,  0.00000000e+00, -1.19000000e+00],
-                              [ 0.00000000e+00,  0.00000000e+00,  0.00000000e+00,  1.00000000e+00]]),
-        'CAM_FRONT_LEFT':np.array([[ 6.03961325e-14,  1.39475744e+03,  0.00000000e+00, -9.20539908e+02],
+                                  [ 0.00000000e+00,  4.50000000e+02, -1.14251841e+03, -8.09704417e+02],
+                                  [ 0.00000000e+00,  1.00000000e+00,  0.00000000e+00, -1.19000000e+00],
+                                 [ 0.00000000e+00,  0.00000000e+00,  0.00000000e+00,  1.00000000e+00]]),
+          'CAM_FRONT_LEFT':np.array([[ 6.03961325e-14,  1.39475744e+03,  0.00000000e+00, -9.20539908e+02],
                                    [-3.68618420e+02,  2.58109396e+02, -1.14251841e+03, -6.47296750e+02],
                                    [-8.19152044e-01,  5.73576436e-01,  0.00000000e+00, -8.29094072e-01],
                                    [ 0.00000000e+00,  0.00000000e+00,  0.00000000e+00,  1.00000000e+00]]),
-        'CAM_FRONT_RIGHT':np.array([[ 1.31064327e+03, -4.77035138e+02,  0.00000000e+00,-4.06010608e+02],
-                                    [ 3.68618420e+02,  2.58109396e+02, -1.14251841e+03,-6.47296750e+02],
+          'CAM_FRONT_RIGHT':np.array([[ 1.31064327e+03, -4.77035138e+02,  0.00000000e+00,-4.06010608e+02],
+                                       [ 3.68618420e+02,  2.58109396e+02, -1.14251841e+03,-6.47296750e+02],
                                     [ 8.19152044e-01,  5.73576436e-01,  0.00000000e+00,-8.29094072e-01],
                                     [ 0.00000000e+00,  0.00000000e+00,  0.00000000e+00, 1.00000000e+00]]),
-        'CAM_BACK':np.array([[-5.60166031e+02, -8.00000000e+02,  0.00000000e+00, -1.28800000e+03],
+         'CAM_BACK':np.array([[-5.60166031e+02, -8.00000000e+02,  0.00000000e+00, -1.28800000e+03],
                      [ 5.51091060e-14, -4.50000000e+02, -5.60166031e+02, -8.58939847e+02],
                      [ 1.22464680e-16, -1.00000000e+00,  0.00000000e+00, -1.61000000e+00],
                      [ 0.00000000e+00,  0.00000000e+00,  0.00000000e+00,  1.00000000e+00]]),
@@ -83,14 +95,14 @@ class VadAgent(autonomous_agent.AutonomousAgent):
         }
         self.lidar2cam = {
         'CAM_FRONT':np.array([[ 1.  ,  0.  ,  0.  ,  0.  ],
-                              [ 0.  ,  0.  , -1.  , -0.24],
-                              [ 0.  ,  1.  ,  0.  , -1.19],
+                                 [ 0.  ,  0.  , -1.  , -0.24],
+                                 [ 0.  ,  1.  ,  0.  , -1.19],
                               [ 0.  ,  0.  ,  0.  ,  1.  ]]),
         'CAM_FRONT_LEFT':np.array([[ 0.57357644,  0.81915204,  0.  , -0.22517331],
-                                   [ 0.        ,  0.        , -1.  , -0.24      ],
+                                      [ 0.        ,  0.        , -1.  , -0.24      ],
                                    [-0.81915204,  0.57357644,  0.  , -0.82909407],
                                    [ 0.        ,  0.        ,  0.  ,  1.        ]]),
-        'CAM_FRONT_RIGHT':np.array([[ 0.57357644, -0.81915204, 0.  ,  0.22517331],
+          'CAM_FRONT_RIGHT':np.array([[ 0.57357644, -0.81915204, 0.  ,  0.22517331],
                                    [ 0.        ,  0.        , -1.  , -0.24      ],
                                    [ 0.81915204,  0.57357644,  0.  , -0.82909407],
                                    [ 0.        ,  0.        ,  0.  ,  1.        ]]),
@@ -125,41 +137,41 @@ class VadAgent(autonomous_agent.AutonomousAgent):
         self.steer_step = 0
         self.last_moving_status = 0
         self.last_moving_step = -1
-        self.last_steer = 0
+        self.last_steers = deque()
         self.pidcontroller = PIDController() 
 
         self.step = -1
         self.wall_start = time.time()
         self.initialized = False
         
-        # save result related
-        self.save_path = save_path
-        if self.save_result:
-            if self.save_path.exists():
-                self.logger.log(f'>> VAD {self.save_path.name} already exists, remove it', color='red')
-                shutil.rmtree(self.save_path)
-            self.save_path.mkdir(parents=True, exist_ok=False)
-            (self.save_path / 'rgb_front').mkdir(exist_ok=True)
-            (self.save_path / 'rgb_front_right').mkdir(exist_ok=True)
-            (self.save_path / 'rgb_front_left').mkdir(exist_ok=True)
-            (self.save_path / 'rgb_back').mkdir(exist_ok=True)
-            (self.save_path / 'rgb_back_right').mkdir(exist_ok=True)
-            (self.save_path / 'rgb_back_left').mkdir(exist_ok=True)
-            (self.save_path / 'meta').mkdir(exist_ok=True)
-            (self.save_path / 'bev').mkdir(exist_ok=True)  
-
         self.takeover = False
         self.stop_time = 0
         self.takeover_time = 0
+        self.save_path = None
 
         control = carla.VehicleControl()
         control.steer = 0.0
         control.throttle = 0.0
         control.brake = 0.0	
         self.prev_control = control
-        self.prev_control_cache = []
-
+        # save result related
+        self.save_path = save_path
+        if self.save_result:
+            if self.save_path.exists():
+                self.logger.log(f'>> UniAD {self.save_path.name} already exists, remove it', color='red')
+                shutil.rmtree(self.save_path)
+            self.save_path.mkdir(parents=True, exist_ok=False)
+            (self.save_path / 'rgb_front').mkdir()
+            (self.save_path / 'rgb_front_right').mkdir()
+            (self.save_path / 'rgb_front_left').mkdir()
+            (self.save_path / 'rgb_back').mkdir()
+            (self.save_path / 'rgb_back_right').mkdir()
+            (self.save_path / 'rgb_back_left').mkdir()
+            (self.save_path / 'meta').mkdir()
+            (self.save_path / 'bev').mkdir()
+   
     def _init(self):
+        
         try:
             locx, locy = self._global_plan_world_coord[0][0].location.x, self._global_plan_world_coord[0][0].location.y
             lon, lat = self._global_plan[0][0]['lon'], self._global_plan[0][0]['lat']
@@ -174,7 +186,7 @@ class VadAgent(autonomous_agent.AutonomousAgent):
             self.lat_ref, self.lon_ref = solution[0], solution[1]
         except Exception as e:
             print(e, flush=True)
-            self.lat_ref, self.lon_ref = 0, 0      
+            self.lat_ref, self.lon_ref = 0, 0        
         self._route_planner = RoutePlanner(4.0, 50.0, lat_ref=self.lat_ref, lon_ref=self.lon_ref)
         self._route_planner.set_route(self._global_plan, True)
         self.initialized = True
@@ -247,7 +259,9 @@ class VadAgent(autonomous_agent.AutonomousAgent):
                     'reading_frequency': 20,
                     'id': 'SPEED'
                 },
+                
             ]
+        
         if self.save_result:
             sensors += [
                     {	
@@ -274,10 +288,8 @@ class VadAgent(autonomous_agent.AutonomousAgent):
         compass = input_data['IMU'][1][-1]
         acceleration = input_data['IMU'][1][:3]
         angular_velocity = input_data['IMU'][1][3:6]
-  
         pos = self.gps_to_location(gps)
         near_node, near_command = self._route_planner.run_step(pos)
-  
         if (math.isnan(compass) == True): #It can happen that the compass sends nan for a few frames
             compass = 0.0
             acceleration = np.zeros(3)
@@ -294,6 +306,7 @@ class VadAgent(autonomous_agent.AutonomousAgent):
                 'angular_velocity':angular_velocity,
                 'command_near':near_command,
                 'command_near_xy':near_node
+    
                 }
         
         return result
@@ -319,9 +332,11 @@ class VadAgent(autonomous_agent.AutonomousAgent):
             results['img'].append(tick_data['imgs'][cam])
         results['lidar2img'] = np.stack(results['lidar2img'],axis=0)
         results['lidar2cam'] = np.stack(results['lidar2cam'],axis=0)
+  
         raw_theta = tick_data['compass']   if not np.isnan(tick_data['compass']) else 0
         ego_theta = -raw_theta + np.pi/2
         rotation = list(Quaternion(axis=[0, 0, 1], radians=ego_theta))
+  
         can_bus = np.zeros(18)
         can_bus[0] = tick_data['pos'][0]
         can_bus[1] = -tick_data['pos'][1]
@@ -333,27 +348,12 @@ class VadAgent(autonomous_agent.AutonomousAgent):
         can_bus[16] = ego_theta
         can_bus[17] = ego_theta / np.pi * 180 
         results['can_bus'] = can_bus
-        ego_lcf_feat = np.zeros(9)
-        ego_lcf_feat[0:2] = can_bus[0:2].copy()
-        ego_lcf_feat[2:4] = can_bus[10:12].copy()
-        ego_lcf_feat[4] = rotation[-1]
-        ego_lcf_feat[5] = 4.89238167
-        ego_lcf_feat[6] = 1.83671331
-        ego_lcf_feat[7] = np.sqrt(can_bus[0]**2+can_bus[1]**2)
-
-        if len(self.prev_control_cache)<10:
-            ego_lcf_feat[8] = 0
-        else:
-            ego_lcf_feat[8] = self.prev_control_cache[0].steer
-
         command = tick_data['command_near']
         if command < 0:
             command = 4
         command -= 1
         results['command'] = command
-        command_onehot = np.zeros(6)
-        command_onehot[command] = 1
-        results['ego_fut_cmd'] = command_onehot
+  
         theta_to_lidar = raw_theta
         command_near_xy = np.array([tick_data['command_near_xy'][0]-can_bus[0],-tick_data['command_near_xy'][1]-can_bus[1]])
         rotation_matrix = np.array([[np.cos(theta_to_lidar),-np.sin(theta_to_lidar)],[np.sin(theta_to_lidar),np.cos(theta_to_lidar)]])
@@ -377,19 +377,18 @@ class VadAgent(autonomous_agent.AutonomousAgent):
                 if torch.is_tensor(data[0]):
                     data[0] = data[0].to(self.device)
         output_data_batch = self.model(input_data_batch, return_loss=False, rescale=True)
-        all_out_truck_d1 = output_data_batch[0]['pts_bbox']['ego_fut_preds'].cpu().numpy()
-        all_out_truck =  np.cumsum(all_out_truck_d1,axis=1)
-        out_truck = all_out_truck[command]
+        out_truck =  output_data_batch[0]['planning']['result_planning']['sdc_traj'][0].cpu().numpy()
         steer_traj, throttle_traj, brake_traj, metadata_traj = self.pidcontroller.control_pid(out_truck, tick_data['speed'], local_command_xy)
         if brake_traj < 0.05: brake_traj = 0.0
         if throttle_traj > brake_traj: brake_traj = 0.0
-
+        if tick_data['speed']>5:
+            throttle_traj = 0
         control = carla.VehicleControl()
         self.pid_metadata = metadata_traj
         self.pid_metadata['agent'] = 'only_traj'
         control.steer = np.clip(float(steer_traj), -1, 1)
         control.throttle = np.clip(float(throttle_traj), 0, 0.75)
-        control.brake = np.clip(float(brake_traj), 0, 1)     
+        control.brake = np.clip(float(brake_traj), 0, 1)
         self.pid_metadata['steer'] = control.steer
         self.pid_metadata['throttle'] = control.throttle
         self.pid_metadata['brake'] = control.brake
@@ -397,24 +396,15 @@ class VadAgent(autonomous_agent.AutonomousAgent):
         self.pid_metadata['throttle_traj'] = float(throttle_traj)
         self.pid_metadata['brake_traj'] = float(brake_traj)
         self.pid_metadata['plan'] = out_truck.tolist()
-        self.pid_metadata['command'] = command
-        self.pid_metadata['all_plan'] = all_out_truck.tolist()
-
         metric_info = self.get_metric_info()
         self.metric_info[self.step] = metric_info
         if self.save_result and self.step % 1 == 0:
             self.save(tick_data)
         self.prev_control = control
-        
-        if len(self.prev_control_cache)==10:
-            self.prev_control_cache.pop(0)
-        self.prev_control_cache.append(control)
         return control
-
 
     def save(self, tick_data):
         frame = self.step // 2  # 10 Hz / 2 = 5 Hz
-
         Image.fromarray(tick_data['imgs']['CAM_FRONT']).save(self.save_path / 'rgb_front' / ('%04d.png' % frame))
         Image.fromarray(tick_data['imgs']['CAM_FRONT_LEFT']).save(self.save_path / 'rgb_front_left' / ('%04d.png' % frame))
         Image.fromarray(tick_data['imgs']['CAM_FRONT_RIGHT']).save(self.save_path / 'rgb_front_right' / ('%04d.png' % frame))
@@ -422,7 +412,6 @@ class VadAgent(autonomous_agent.AutonomousAgent):
         Image.fromarray(tick_data['imgs']['CAM_BACK_LEFT']).save(self.save_path / 'rgb_back_left' / ('%04d.png' % frame))
         Image.fromarray(tick_data['imgs']['CAM_BACK_RIGHT']).save(self.save_path / 'rgb_back_right' / ('%04d.png' % frame))
         Image.fromarray(tick_data['bev']).save(self.save_path / 'bev' / ('%04d.png' % frame))
-
         outfile = open(self.save_path / 'meta' / ('%04d.json' % frame), 'w')
         json.dump(self.pid_metadata, outfile, indent=4)
         outfile.close()
