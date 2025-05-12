@@ -174,3 +174,5 @@ docker/
 
 rift/ego/b2d/ckpt/vad/
 rift/ego/b2d/ckpt/uniad/
+
+**.so
