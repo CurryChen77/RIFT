@@ -41,8 +41,8 @@ similaritymeasures
 laspy==2.5.0
 lazrs==0.5.3
 py-trees==0.8.3
-simple-watchdog-timer==0.1.1
-simple_watchdog_timer
+flash-attn==2.3.2
+simple-watchdog-timer
 transforms3d
 tabulate
 ephem

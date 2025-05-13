@@ -271,11 +271,11 @@ class ModulatedDeformConv2dPack(ModulatedDeformConv2d):
                            'conv_offset.bias'] = state_dict.pop(prefix[:-1] +
                                                                 '_offset.bias')
 
-        if version is not None and version > 1:
-            print_log(
-                f'ModulatedDeformConvPack {prefix.rstrip(".")} is upgraded to '
-                'version 2.',
-                logger='root')
+        # if version is not None and version > 1:
+        #     print_log(
+        #         f'ModulatedDeformConvPack {prefix.rstrip(".")} is upgraded to '
+        #         'version 2.',
+        #         logger='root')
 
         super()._load_from_state_dict(state_dict, prefix, local_metadata,
                                       strict, missing_keys, unexpected_keys,

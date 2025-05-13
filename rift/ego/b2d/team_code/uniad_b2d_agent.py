@@ -17,7 +17,7 @@ from rift.ego.b2d.utils import autonomous_agent
 from rift.scenario.tools.carla_data_provider import CarlaDataProvider
 from mmcv import Config
 from mmcv.models import build_model
-from mmcv.utils import (get_dist_info, init_dist, load_checkpoint, wrap_fp16_model)
+from mmcv.utils import (load_checkpoint)
 from mmcv.datasets.pipelines import Compose
 from mmcv.parallel.collate import collate as  mm_collate_to_batch_form
 from mmcv.core.bbox import get_box_type
@@ -37,19 +37,6 @@ class UniadAgent(autonomous_agent.AutonomousAgent):
         cfg = Config.fromfile(self.config_path)
         # init the model and load the ckpt
         cfg.model['motion_head']['anchor_info_path'] = os.path.join('rift/ego/b2d',cfg.model['motion_head']['anchor_info_path'])
-        # if hasattr(cfg, 'plugin'):
-        #     if cfg.plugin:
-        #         import importlib
-        #         if hasattr(cfg, 'plugin_dir'):
-        #             plugin_dir = cfg.plugin_dir
-        #             plugin_dir = os.path.join("Bench2DriveZoo", plugin_dir)
-        #             _module_dir = os.path.dirname(plugin_dir)
-        #             _module_dir = _module_dir.split('/')
-        #             _module_path = _module_dir[0]
-        #             for m in _module_dir[1:]:
-        #                 _module_path = _module_path + '.' + m
-        #             print(_module_path)
-        #             plg_lib = importlib.import_module(_module_path)  
   
         self.model = build_model(cfg.model, train_cfg=cfg.get('train_cfg'), test_cfg=cfg.get('test_cfg'))
         checkpoint = load_checkpoint(self.model, self.ckpt_path, map_location='cpu', strict=True)
@@ -65,21 +52,21 @@ class UniadAgent(autonomous_agent.AutonomousAgent):
         # write extrinsics directly
         self._im_transform = T.Compose([T.ToTensor(), T.Normalize(mean=[0.485,0.456,0.406], std=[0.229,0.224,0.225])])
         self.last_steers = deque()
-        self.lat_ref, self.lon_ref = 42.0, 2.0
+        self.lat_ref, self.lon_ref = CarlaDataProvider.get_gps_info()
         self.lidar2img = {
         'CAM_FRONT':np.array([[ 1.14251841e+03,  8.00000000e+02,  0.00000000e+00, -9.52000000e+02],
                                   [ 0.00000000e+00,  4.50000000e+02, -1.14251841e+03, -8.09704417e+02],
                                   [ 0.00000000e+00,  1.00000000e+00,  0.00000000e+00, -1.19000000e+00],
                                  [ 0.00000000e+00,  0.00000000e+00,  0.00000000e+00,  1.00000000e+00]]),
-          'CAM_FRONT_LEFT':np.array([[ 6.03961325e-14,  1.39475744e+03,  0.00000000e+00, -9.20539908e+02],
+        'CAM_FRONT_LEFT':np.array([[ 6.03961325e-14,  1.39475744e+03,  0.00000000e+00, -9.20539908e+02],
                                    [-3.68618420e+02,  2.58109396e+02, -1.14251841e+03, -6.47296750e+02],
                                    [-8.19152044e-01,  5.73576436e-01,  0.00000000e+00, -8.29094072e-01],
                                    [ 0.00000000e+00,  0.00000000e+00,  0.00000000e+00,  1.00000000e+00]]),
-          'CAM_FRONT_RIGHT':np.array([[ 1.31064327e+03, -4.77035138e+02,  0.00000000e+00,-4.06010608e+02],
+        'CAM_FRONT_RIGHT':np.array([[ 1.31064327e+03, -4.77035138e+02,  0.00000000e+00,-4.06010608e+02],
                                        [ 3.68618420e+02,  2.58109396e+02, -1.14251841e+03,-6.47296750e+02],
                                     [ 8.19152044e-01,  5.73576436e-01,  0.00000000e+00,-8.29094072e-01],
                                     [ 0.00000000e+00,  0.00000000e+00,  0.00000000e+00, 1.00000000e+00]]),
-         'CAM_BACK':np.array([[-5.60166031e+02, -8.00000000e+02,  0.00000000e+00, -1.28800000e+03],
+        'CAM_BACK':np.array([[-5.60166031e+02, -8.00000000e+02,  0.00000000e+00, -1.28800000e+03],
                      [ 5.51091060e-14, -4.50000000e+02, -5.60166031e+02, -8.58939847e+02],
                      [ 1.22464680e-16, -1.00000000e+00,  0.00000000e+00, -1.61000000e+00],
                      [ 0.00000000e+00,  0.00000000e+00,  0.00000000e+00,  1.00000000e+00]]),
@@ -102,7 +89,7 @@ class UniadAgent(autonomous_agent.AutonomousAgent):
                                       [ 0.        ,  0.        , -1.  , -0.24      ],
                                    [-0.81915204,  0.57357644,  0.  , -0.82909407],
                                    [ 0.        ,  0.        ,  0.  ,  1.        ]]),
-          'CAM_FRONT_RIGHT':np.array([[ 0.57357644, -0.81915204, 0.  ,  0.22517331],
+        'CAM_FRONT_RIGHT':np.array([[ 0.57357644, -0.81915204, 0.  ,  0.22517331],
                                    [ 0.        ,  0.        , -1.  , -0.24      ],
                                    [ 0.81915204,  0.57357644,  0.  , -0.82909407],
                                    [ 0.        ,  0.        ,  0.  ,  1.        ]]),
@@ -170,23 +157,7 @@ class UniadAgent(autonomous_agent.AutonomousAgent):
             (self.save_path / 'meta').mkdir()
             (self.save_path / 'bev').mkdir()
    
-    def _init(self):
-        
-        try:
-            locx, locy = self._global_plan_world_coord[0][0].location.x, self._global_plan_world_coord[0][0].location.y
-            lon, lat = self._global_plan[0][0]['lon'], self._global_plan[0][0]['lat']
-            EARTH_RADIUS_EQUA = 6378137.0
-            def equations(vars):
-                x, y = vars
-                eq1 = lon * math.cos(x * math.pi / 180) - (locx * x * 180) / (math.pi * EARTH_RADIUS_EQUA) - math.cos(x * math.pi / 180) * y
-                eq2 = math.log(math.tan((lat + 90) * math.pi / 360)) * EARTH_RADIUS_EQUA * math.cos(x * math.pi / 180) + locy - math.cos(x * math.pi / 180) * EARTH_RADIUS_EQUA * math.log(math.tan((90 + x) * math.pi / 360))
-                return [eq1, eq2]
-            initial_guess = [0, 0]
-            solution = fsolve(equations, initial_guess)
-            self.lat_ref, self.lon_ref = solution[0], solution[1]
-        except Exception as e:
-            print(e, flush=True)
-            self.lat_ref, self.lon_ref = 0, 0        
+    def _init(self):      
         self._route_planner = RoutePlanner(4.0, 50.0, lat_ref=self.lat_ref, lon_ref=self.lon_ref)
         self._route_planner.set_route(self._global_plan, True)
         self.initialized = True
@@ -370,7 +341,7 @@ class UniadAgent(autonomous_agent.AutonomousAgent):
         results['ori_shape'] = stacked_imgs.shape
         results['pad_shape'] = stacked_imgs.shape
         results = self.inference_only_pipeline(results)
-        self.device="cuda"
+
         input_data_batch = mm_collate_to_batch_form([results], samples_per_gpu=1)
         for key, data in input_data_batch.items():
             if key != 'img_metas':
@@ -396,6 +367,7 @@ class UniadAgent(autonomous_agent.AutonomousAgent):
         self.pid_metadata['throttle_traj'] = float(throttle_traj)
         self.pid_metadata['brake_traj'] = float(brake_traj)
         self.pid_metadata['plan'] = out_truck.tolist()
+        self.pid_metadata['command'] = command
         metric_info = self.get_metric_info()
         self.metric_info[self.step] = metric_info
         if self.save_result and self.step % 1 == 0:

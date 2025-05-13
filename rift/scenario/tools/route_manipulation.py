@@ -13,7 +13,6 @@ It also contains functions to convert the CARLA world location do GPS coordinate
 import math
 import xml.etree.ElementTree as ET
 
-from line_profiler import LineProfiler
 from agents.navigation.local_planner import RoadOption
 from rift.scenario.tools.global_route_planner import GlobalRoutePlanner
 from rift.scenario.tools.carla_data_provider import CarlaDataProvider

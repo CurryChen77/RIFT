@@ -10,13 +10,13 @@ This module provides the base class for all autonomous agents
 from __future__ import print_function
 
 from enum import Enum
-import shutil
 
 import carla
 
 from rift.ego.b2d.utils.sensor_interface import SensorInterface
 from rift.scenario.tools.route_manipulation import downsample_route
 from rift.scenario.tools.timer import GameTime
+from rift.util.torch_util import get_device_name
 
 
 class Track(Enum):
@@ -42,6 +42,8 @@ class AutonomousAgent(object):
         self._global_plan = None
         self._global_plan_world_coord = None
         self.save_result = save_result
+
+        self.device = get_device_name()
 
         # this data structure will contain all sensor data
         self.sensor_interface = SensorInterface()

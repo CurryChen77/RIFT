@@ -7,6 +7,7 @@
 from typing import Dict, List
 
 import numpy as np
+from team_code.sparsedrive_b2d_agent import SparseDriveAgent
 from rift.ego.base_policy import EgoBasePolicy
 from rift.ego.b2d.team_code.vad_b2b_agent import VadAgent
 from team_code.uniad_b2d_agent import UniadAgent
@@ -115,3 +116,26 @@ class UniAD(E2E_Agent):
             planner_wrapper = AgentWrapper(planner)
             self.planner_list.append(planner_wrapper)
 
+
+class SparseDrive(E2E_Agent):
+    name = 'sparse_drive'
+    type = 'learnable'
+
+    def __init__(self, config, logger):
+        super().__init__(config, logger)
+        # init the AV method        
+        for _ in range(config['num_scenario']):
+            # init the AV planner
+            planner = SparseDriveAgent(
+                config_path=config['config_path'],
+                ckpt_path=config['ckpt_path'],
+                save_result=config['save_result'],
+                logger=self.logger
+                )
+            # validate the sensor configuration
+            sensors = planner.sensors()
+            track = planner.track 
+            validate_sensor_configuration(sensors, track, 'SENSORS')
+            # store the wrapper planner
+            planner_wrapper = AgentWrapper(planner)
+            self.planner_list.append(planner_wrapper)

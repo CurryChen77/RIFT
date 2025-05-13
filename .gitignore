@@ -172,7 +172,6 @@ docker/
 
 /ablation/*
 
-rift/ego/b2d/ckpt/vad/
-rift/ego/b2d/ckpt/uniad/
 
 **.so
+**.pth

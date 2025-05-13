@@ -12,7 +12,7 @@ from rift.ego.base_policy import EgoBasePolicy
 from agents.navigation.behavior_agent import BehaviorAgent
 
 
-class CarlaBehaviorAgent(EgoBasePolicy):
+class Behavior(EgoBasePolicy):
     name = 'behavior'
     type = 'unlearnable'
 

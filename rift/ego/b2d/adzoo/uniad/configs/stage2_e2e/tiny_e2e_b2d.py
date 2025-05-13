@@ -3,7 +3,7 @@ _base_ = ["../_base_/datasets/nus-3d.py",
 
 # Update-2023-06-12: 
 # [Enhance] Update some freezing args of UniAD 
-# plugin_dir = "projects/mmdet3d_plugin/"
+# plugin_dir = "mmdet3d_plugin/"
 # If point cloud range is changed, the models should also change their point
 # cloud range accordingly
 point_cloud_range = [-51.2, -51.2, -5.0, 51.2, 51.2, 3.0]

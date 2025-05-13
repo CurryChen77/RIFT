@@ -12,7 +12,7 @@ from rift.ego.base_policy import EgoBasePolicy
 from rift.ego.expert.autopilot import AutoPilot
 
 
-class CarlaExpertDisturbAgent(EgoBasePolicy):
+class ExpertDisturb(EgoBasePolicy):
     name = 'expert_disturb'
     type = 'unlearnable'
 

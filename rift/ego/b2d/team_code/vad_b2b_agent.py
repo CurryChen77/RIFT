@@ -53,7 +53,7 @@ class VadAgent(autonomous_agent.AutonomousAgent):
 
         # init the parameters
         self._im_transform = T.Compose([T.ToTensor(), T.Normalize(mean=[0.485,0.456,0.406], std=[0.229,0.224,0.225])])
-        self.lat_ref, self.lon_ref = 42.0, 2.0
+        self.lat_ref, self.lon_ref = CarlaDataProvider.get_gps_info()
         self.lidar2img = {
         'CAM_FRONT':np.array([[ 1.14251841e+03,  8.00000000e+02,  0.00000000e+00, -9.52000000e+02],
                               [ 0.00000000e+00,  4.50000000e+02, -1.14251841e+03, -8.09704417e+02],
@@ -160,21 +160,6 @@ class VadAgent(autonomous_agent.AutonomousAgent):
         self.prev_control_cache = []
 
     def _init(self):
-        try:
-            locx, locy = self._global_plan_world_coord[0][0].location.x, self._global_plan_world_coord[0][0].location.y
-            lon, lat = self._global_plan[0][0]['lon'], self._global_plan[0][0]['lat']
-            EARTH_RADIUS_EQUA = 6378137.0
-            def equations(vars):
-                x, y = vars
-                eq1 = lon * math.cos(x * math.pi / 180) - (locx * x * 180) / (math.pi * EARTH_RADIUS_EQUA) - math.cos(x * math.pi / 180) * y
-                eq2 = math.log(math.tan((lat + 90) * math.pi / 360)) * EARTH_RADIUS_EQUA * math.cos(x * math.pi / 180) + locy - math.cos(x * math.pi / 180) * EARTH_RADIUS_EQUA * math.log(math.tan((90 + x) * math.pi / 360))
-                return [eq1, eq2]
-            initial_guess = [0, 0]
-            solution = fsolve(equations, initial_guess)
-            self.lat_ref, self.lon_ref = solution[0], solution[1]
-        except Exception as e:
-            print(e, flush=True)
-            self.lat_ref, self.lon_ref = 0, 0      
         self._route_planner = RoutePlanner(4.0, 50.0, lat_ref=self.lat_ref, lon_ref=self.lon_ref)
         self._route_planner.set_route(self._global_plan, True)
         self.initialized = True
@@ -370,7 +355,7 @@ class VadAgent(autonomous_agent.AutonomousAgent):
         results['ori_shape'] = stacked_imgs.shape
         results['pad_shape'] = stacked_imgs.shape
         results = self.inference_only_pipeline(results)
-        self.device="cuda"
+        
         input_data_batch = mm_collate_to_batch_form([results], samples_per_gpu=1)
         for key, data in input_data_batch.items():
             if key != 'img_metas':
