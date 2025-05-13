@@ -6,7 +6,7 @@
 """
 from rift.gym_carla.observation.base_observation import EgoBaseObservation, CBVBaseObservation, EgoNormalObservation, CBVNormalObservation, EgoSimpleObservation
 from rift.gym_carla.observation.pluto_observation import EgoPlutoObservation, CBVPlutoObservation
-from rift.gym_carla.observation.ft_pluto_observation import CBVGRPOPlutoObservation, CBVRSPlutoObservation, CBVRTRPlutoObservation, CBVReinforcePlutoObservation, CBVPPOPlutoObservation, CBVSFTPlutoObservation
+from rift.gym_carla.observation.ft_pluto_observation import CBVGRPOPlutoObservation, CBVRIFTPlutoObservation, CBVRSPlutoObservation, CBVRTRPlutoObservation, CBVReinforcePlutoObservation, CBVPPOPlutoObservation, CBVSFTPlutoObservation
 
 OBSERVATION_LIST = {
     'ego_no_obs': EgoBaseObservation,
@@ -23,4 +23,5 @@ OBSERVATION_LIST = {
     'cbv_reinforce_pluto_obs': CBVReinforcePlutoObservation,
     'cbv_ppo_pluto_obs': CBVPPOPlutoObservation,
     'cbv_grpo_pluto_obs': CBVGRPOPlutoObservation,
+    'cbv_rift_pluto_obs': CBVRIFTPlutoObservation,
 }
