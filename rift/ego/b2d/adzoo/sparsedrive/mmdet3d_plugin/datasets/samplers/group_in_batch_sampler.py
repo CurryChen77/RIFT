@@ -5,7 +5,7 @@ import copy
 import numpy as np
 import torch
 import torch.distributed as dist
-from mmcv.runner import get_dist_info
+from mmcv.utils import get_dist_info
 from torch.utils.data.sampler import Sampler
 
 

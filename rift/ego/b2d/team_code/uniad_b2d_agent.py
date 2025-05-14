@@ -22,7 +22,6 @@ from mmcv.datasets.pipelines import Compose
 from mmcv.parallel.collate import collate as  mm_collate_to_batch_form
 from mmcv.core.bbox import get_box_type
 from pyquaternion import Quaternion
-from scipy.optimize import fsolve
 
 def get_entry_point():
     return 'UniadAgent'
@@ -246,7 +245,7 @@ class UniadAgent(autonomous_agent.AutonomousAgent):
 
     def tick(self, input_data):
         self.step += 1
-        encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 20]
+        encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 80]  # change from 20 to 80
         imgs = {}
         for cam in ['CAM_FRONT','CAM_FRONT_LEFT','CAM_FRONT_RIGHT','CAM_BACK','CAM_BACK_LEFT','CAM_BACK_RIGHT']:
             img = cv2.cvtColor(input_data[cam][1][:, :, :3], cv2.COLOR_BGR2RGB)

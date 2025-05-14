@@ -2,6 +2,8 @@ from .focal_loss import FocalLoss, sigmoid_focal_loss
 from .iou_loss import (BoundedIoULoss, CIoULoss, DIoULoss, GIoULoss, IoULoss,
                        bounded_iou_loss, iou_loss)
 from .smooth_l1_loss import L1Loss, SmoothL1Loss, l1_loss, smooth_l1_loss
+from .cross_entropy_loss import CrossEntropyLoss
+from .gaussian_focal_loss import GaussianFocalLoss
 
 
 # __all__ = [

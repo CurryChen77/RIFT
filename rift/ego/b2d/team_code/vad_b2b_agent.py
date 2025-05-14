@@ -6,7 +6,7 @@ import time
 import cv2
 import carla
 import math
-from scipy.optimize import fsolve
+
 import torch
 import carla
 import numpy as np
@@ -246,7 +246,7 @@ class VadAgent(autonomous_agent.AutonomousAgent):
 
     def tick(self, input_data):
         self.step += 1
-        encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 20]
+        encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 80]  # change from 20 to 80
         imgs = {}
         for cam in ['CAM_FRONT','CAM_FRONT_LEFT','CAM_FRONT_RIGHT','CAM_BACK','CAM_BACK_LEFT','CAM_BACK_RIGHT']:
             img = cv2.cvtColor(input_data[cam][1][:, :, :3], cv2.COLOR_BGR2RGB)

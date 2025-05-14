@@ -1,4 +1,4 @@
-policy_name: 'uniad'
+policy_name: 'sparsedrive'
 policy_type: 'e2e'
 model_type: 'ego'
 results_folder_path: ''

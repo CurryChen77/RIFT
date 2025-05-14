@@ -15,7 +15,14 @@
     pip install -v -e .
     ```
 
-- **STEP 4: Prepare pretrained weights.**
+- **STEP 4: Install the mmdet_plugin/opt for sparse drive**
+    ```
+    cd adzoo/sparsedrive/mmdet3d_plugin/opt
+    python3 setup.py develop
+    cd ../../../../
+    ```
+
+- **STEP 5: Prepare pretrained weights.**
     create directory `ckpts`
 
     ```

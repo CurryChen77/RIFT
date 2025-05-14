@@ -4,7 +4,7 @@ import cv2
 import numpy as np
 import torch
 
-from projects.mmdet3d_plugin.core.box3d import *
+from ..core.box3d import *
 
 
 def box3d_to_corners(box3d):

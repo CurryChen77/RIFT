@@ -5,10 +5,10 @@ import torch.nn.functional as F
 import numpy as np
 
 from mmcv.utils import build_from_cfg
-from mmcv.cnn.bricks.registry import PLUGIN_LAYERS
+from mmcv.models.bricks.registry import PLUGIN_LAYERS
 
-from projects.mmdet3d_plugin.ops import feature_maps_format
-from projects.mmdet3d_plugin.core.box3d import *
+from ...ops import feature_maps_format
+from ...core.box3d import *
 
 from ..blocks import linear_relu_ln
 

@@ -129,7 +129,7 @@ class CarlaMap:
                 return MultiLineString()  # Empty MultiLineString if no valid segments are found
 
 
-    def _preprocess_data(self, data_dict: Dict[Any, Any]) -> Tuple[gpd.GeoDataFrame, gpd.GeoDataFrame, gpd.GeoDataFrame]:
+    def _preprocess_data(self, data_dict: Dict[Any, Any]) -> Tuple[gpd.GeoDataFrame, gpd.GeoDataFrame, gpd.GeoDataFrame, gpd.GeoDataFrame]:
         """
         Preprocess the map data and convert it into GeoDataFrames for spatial queries.
 

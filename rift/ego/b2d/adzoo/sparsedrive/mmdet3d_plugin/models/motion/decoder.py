@@ -3,11 +3,11 @@ from typing import Optional
 import numpy as np
 import torch
 
-from mmdet.core.bbox.builder import BBOX_CODERS
+from mmcv.core.bbox.builder import BBOX_CODERS
 
-from projects.mmdet3d_plugin.core.box3d import *
-from projects.mmdet3d_plugin.models.detection3d.decoder import *
-from projects.mmdet3d_plugin.datasets.utils import box3d_to_corners
+from ...core.box3d import *
+from ...models.detection3d.decoder import *
+from ...datasets.utils import box3d_to_corners
 
 
 @BBOX_CODERS.register_module()

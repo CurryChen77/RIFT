@@ -31,8 +31,8 @@ from .evaluation.detection.nuscenes_styled_eval_utils import (
 
 import mmcv
 from mmcv.utils import print_log
-from mmdet.datasets import DATASETS
-from mmdet.datasets.pipelines import Compose
+from mmcv.datasets.builder import DATASETS
+from mmcv.datasets.pipelines import Compose
 from .utils import (
     draw_lidar_bbox3d_on_img,
     draw_lidar_bbox3d_on_bev,

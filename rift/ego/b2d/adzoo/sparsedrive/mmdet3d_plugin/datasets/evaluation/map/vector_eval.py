@@ -12,7 +12,7 @@ from shapely.geometry import LineString
 
 import mmcv
 from mmcv import Config
-from mmdet.datasets import build_dataset, build_dataloader
+from mmcv.datasets import build_dataset, build_dataloader
 
 from .AP import instance_match, average_precision
 

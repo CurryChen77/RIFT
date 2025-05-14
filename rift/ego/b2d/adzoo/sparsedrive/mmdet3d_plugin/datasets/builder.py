@@ -5,12 +5,12 @@ from functools import partial
 
 import numpy as np
 from mmcv.parallel import collate
-from mmcv.runner import get_dist_info
+from mmcv.utils import get_dist_info
 from mmcv.utils import Registry, build_from_cfg
 from torch.utils.data import DataLoader
 
-from mmdet.datasets.samplers import GroupSampler
-from projects.mmdet3d_plugin.datasets.samplers import (
+from mmcv.datasets.samplers import GroupSampler
+from ..datasets.samplers import (
     GroupInBatchSampler,
     DistributedGroupSampler,
     DistributedSampler,
@@ -135,8 +135,8 @@ def worker_init_fn(worker_id, num_workers, rank, seed):
 import platform
 from mmcv.utils import Registry, build_from_cfg
 
-from mmdet.datasets import DATASETS
-from mmdet.datasets.builder import _concat_dataset
+from mmcv.datasets import DATASETS
+from mmcv.datasets.builder import _concat_dataset
 
 if platform.system() != "Windows":
     # https://github.com/pytorch/pytorch/issues/973
@@ -153,10 +153,10 @@ OBJECTSAMPLERS = Registry("Object sampler")
 
 def custom_build_dataset(cfg, default_args=None):
     try:
-        from mmdet3d.datasets.dataset_wrappers import CBGSDataset
+        from mmcv.datasets.dataset_wrappers import CBGSDataset
     except:
         CBGSDataset = None
-    from mmdet.datasets.dataset_wrappers import (
+    from mmcv.datasets.dataset_wrappers import (
         ClassBalancedDataset,
         ConcatDataset,
         RepeatDataset,

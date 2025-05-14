@@ -1,6 +1,6 @@
 import torch
 
-from mmdet.core.bbox.builder import BBOX_SAMPLERS
+from mmcv.core.bbox.builder import BBOX_SAMPLERS
 
 __all__ = ["MotionTarget", "PlanningTarget"]
 

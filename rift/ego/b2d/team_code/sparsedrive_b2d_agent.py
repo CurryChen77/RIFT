@@ -4,7 +4,6 @@ import shutil
 import time
 
 import math
-from scipy.optimize import fsolve
 from pyquaternion import Quaternion
 
 from PIL import Image
@@ -66,8 +65,7 @@ class SparseDriveAgent(autonomous_agent.AutonomousAgent):
             if cfg.plugin:
                 import importlib
                 if hasattr(cfg, "plugin_dir"):
-                    plugin_dir = cfg.plugin_dir
-                    _module_dir = os.path.dirname("rift/ego/b2d", plugin_dir)
+                    _module_dir = os.path.dirname(os.path.join(cfg.base_dir, cfg.plugin_dir))
                     _module_dir = _module_dir.split("/")
                     _module_path = _module_dir[0]
 
@@ -184,7 +182,7 @@ class SparseDriveAgent(autonomous_agent.AutonomousAgent):
         self.save_path = save_path
         if self.save_result:
             if self.save_path.exists():
-                self.logger.log(f'>> VAD {self.save_path.name} already exists, remove it', color='red')
+                self.logger.log(f'>> SparseDrive {self.save_path.name} already exists, remove it', color='red')
                 shutil.rmtree(self.save_path)
             self.save_path.mkdir(parents=True, exist_ok=False)
             (self.save_path / 'rgb_front' ).mkdir(exist_ok=True)
@@ -304,7 +302,7 @@ class SparseDriveAgent(autonomous_agent.AutonomousAgent):
 
     def tick(self, input_data):
         self.step += 1
-        encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 20]
+        encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 80]  # change from 20 to 80
         imgs = {}
         for cam in ['CAM_FRONT', 'CAM_FRONT_RIGHT', 'CAM_FRONT_LEFT', 'CAM_BACK', 'CAM_BACK_LEFT', 'CAM_BACK_RIGHT']:
             img = input_data[cam][1][:, :, :3]

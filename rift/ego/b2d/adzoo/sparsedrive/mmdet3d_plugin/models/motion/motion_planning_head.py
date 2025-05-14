@@ -8,22 +8,22 @@ import torch
 import torch.nn as nn
 
 from mmcv.utils import build_from_cfg
-from mmcv.cnn import Linear, bias_init_with_prob
-from mmcv.runner import BaseModule, force_fp32
-from mmcv.cnn.bricks.registry import (
+from mmcv.models import Linear, bias_init_with_prob, BaseModule
+from mmcv.utils import force_fp32
+from mmcv.models.bricks.registry import (
     ATTENTION,
     PLUGIN_LAYERS,
     POSITIONAL_ENCODING,
     FEEDFORWARD_NETWORK,
     NORM_LAYERS,
 )
-from mmdet.core import reduce_mean
-from mmdet.models import HEADS
-from mmdet.core.bbox.builder import BBOX_SAMPLERS, BBOX_CODERS
-from mmdet.models import build_loss
+from mmcv.core import reduce_mean
+from mmcv.models import HEADS
+from mmcv.core.bbox.builder import BBOX_SAMPLERS, BBOX_CODERS
+from mmcv.models import build_loss
 
-from projects.mmdet3d_plugin.datasets.utils import box3d_to_corners
-from projects.mmdet3d_plugin.core.box3d import *
+from ...datasets.utils import box3d_to_corners
+from ...core.box3d import *
 
 from ..attention import gen_sineembed_for_position
 from ..blocks import linear_relu_ln
