@@ -158,7 +158,7 @@ class VectorWrapper():
                 spectator.set_transform(carla.Transform(
                     transform.location + carla.Location(z=50), carla.Rotation(yaw=transform.rotation.yaw, pitch=-80.0)
                 ))
-
+        start_time = GameTime.get_time()
         # tick all scenarios
         for _ in range(self.frame_skip):
             self.world.tick()
@@ -176,6 +176,8 @@ class VectorWrapper():
         GameTime.on_carla_tick(timestamp)
         # After tick, update all the actors' info
         CarlaDataProvider.on_carla_tick()
+        end_time = GameTime.get_time()
+        CarlaDataProvider.set_tick_time(end_time - start_time)
 
         for e_i in range(self.num_scenario):
             if not self.finished_env[e_i]:

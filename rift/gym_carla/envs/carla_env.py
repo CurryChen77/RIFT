@@ -298,10 +298,7 @@ class CarlaEnv(gym.Env):
                 timestamp = snapshot.timestamp
 
                 # update the actions
-                start_time = GameTime.get_time()
                 self.scenario_manager.get_update(timestamp, ego_action, cbv_actions)
-                end_time = GameTime.get_time()
-                CarlaDataProvider.set_tick_time(end_time - start_time)
 
             else:
                 self.logger.log('>> Can not get snapshot!', color='red')

@@ -237,7 +237,7 @@ class ScenarioManager(object):
                 prev_acc = cbv_data['acc'][-2]
             else:
                 prev_acc = 0.0
-            current_jerk = (current_acc - prev_acc) / delta_time
+            current_jerk = (current_acc - prev_acc) / delta_time if delta_time > 1e-6 else 0.0
             cbv_data['jerk'].append(current_jerk)
             
             # Calculate progress (distance from last location)
