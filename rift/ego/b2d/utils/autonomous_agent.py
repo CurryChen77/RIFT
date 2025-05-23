@@ -57,7 +57,7 @@ class AutonomousAgent(object):
         """
         self.sensor_interface = SensorInterface()
 
-    def setup(self, save_path=None):
+    def setup(self, save_path=None, route_index=None):
         """
         Initialize everything needed by your agent and set the track attribute to the right type:
             Track.SENSORS : CAMERAS, LIDAR, RADAR, GPS and IMU sensors are allowed
@@ -103,6 +103,13 @@ class AutonomousAgent(object):
     def destroy(self):
         """
         Destroy (clean-up) the agent
+        :return:
+        """
+        pass
+
+    def cleanup(self):
+        """
+        Clean up the agent
         :return:
         """
         pass

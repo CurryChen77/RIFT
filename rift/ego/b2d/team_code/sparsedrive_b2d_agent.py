@@ -12,6 +12,8 @@ import numpy as np
 import torch
 import pickle
 
+from utils.e2e_recorder import E2ERecorder
+
 import carla
 from team_code.pid_controller import PIDController
 from team_code.planner import RoutePlanner
@@ -86,7 +88,7 @@ class SparseDriveAgent(autonomous_agent.AutonomousAgent):
         self.test_pipeline = Compose(self.test_pipeline)
         self.data_aug_conf = cfg.data_aug_conf
 
-        self.lat_ref, self.lon_ref = CarlaDataProvider.get_gps_info()
+        self.lat_ref, self.lon_ref = 42.0, 2.0
         self.lidar2cam = {
         'CAM_FRONT':np.array([[ 1.  ,  0.  ,  0.  ,  0.  ],
                                 [ 0.  ,  0.  ,  1.  ,  0.  ],
@@ -155,8 +157,7 @@ class SparseDriveAgent(autonomous_agent.AutonomousAgent):
         topdown_intrinsics = np.array([[548.993771650447, 0.0, 256.0, 0], [0.0, 548.993771650447, 256.0, 0], [0.0, 0.0, 1.0, 0], [0, 0, 0, 1.0]])
         self.coor2topdown = topdown_intrinsics @ self.coor2topdown
 
-
-    def setup(self, save_path=None):
+    def setup(self, save_path=None, route_index=None):
         self.track = autonomous_agent.Track.SENSORS
         self.steer_step = 0
         self.last_moving_status = 0
@@ -179,20 +180,12 @@ class SparseDriveAgent(autonomous_agent.AutonomousAgent):
         self.prev_control = control
         self.prev_control_cache = []
 
-        self.save_path = save_path
+        # init the visualization recorder
         if self.save_result:
-            if self.save_path.exists():
-                self.logger.log(f'>> SparseDrive {self.save_path.name} already exists, remove it', color='red')
-                shutil.rmtree(self.save_path)
-            self.save_path.mkdir(parents=True, exist_ok=False)
-            (self.save_path / 'rgb_front' ).mkdir(exist_ok=True)
-            (self.save_path / 'rgb_front_right').mkdir(exist_ok=True)
-            (self.save_path / 'rgb_front_left').mkdir(exist_ok=True)
-            (self.save_path / 'rgb_back').mkdir(exist_ok=True)
-            (self.save_path / 'rgb_back_right').mkdir(exist_ok=True)
-            (self.save_path / 'rgb_back_left').mkdir(exist_ok=True)
-            (self.save_path / 'meta').mkdir(exist_ok=True)
-            (self.save_path / 'bev').mkdir(exist_ok=True)
+            self.recorder = E2ERecorder(save_path)
+            self.save_path = save_path
+            self.video_name = f'route_{route_index}.mp4'
+            self.save_path.mkdir(parents=True, exist_ok=True)
 
         self.clock = Clock() 
 
@@ -204,6 +197,7 @@ class SparseDriveAgent(autonomous_agent.AutonomousAgent):
         self._route_planner.set_route(self._global_plan, True)
         self.initialized = True
         self.metric_info = {}
+        self.pid_metadata = {}
 
     def sensors(self):
         W = 1600 * RESIZE_SCALE
@@ -446,26 +440,28 @@ class SparseDriveAgent(autonomous_agent.AutonomousAgent):
             self.forced_move    = 0
 
         control = carla.VehicleControl()
-        self.pid_metadata = metadata_traj
-        self.pid_metadata['agent'] = 'only_traj'
+
+        metadata_traj['agent'] = 'only_traj'
         control.steer = np.clip(float(steer_traj), -1, 1)
         control.throttle = np.clip(float(throttle_traj), 0, 0.75)
         control.brake = np.clip(float(brake_traj), 0, 1)     
-        self.pid_metadata['steer'] = control.steer
-        self.pid_metadata['throttle'] = control.throttle
-        self.pid_metadata['brake'] = control.brake
-        self.pid_metadata['steer_traj'] = float(steer_traj)
-        self.pid_metadata['throttle_traj'] = float(throttle_traj)
-        self.pid_metadata['brake_traj'] = float(brake_traj)
-        self.pid_metadata['plan'] = out_truck.tolist()
-        self.pid_metadata['command'] = command
-        self.pid_metadata['local_command_xy'] = local_command_xy
-        self.pid_metadata['result'] = output_data_batch[0]['img_bbox']
+        metadata_traj['steer'] = control.steer
+        metadata_traj['throttle'] = control.throttle
+        metadata_traj['brake'] = control.brake
+        metadata_traj['steer_traj'] = float(steer_traj)
+        metadata_traj['throttle_traj'] = float(throttle_traj)
+        metadata_traj['brake_traj'] = float(brake_traj)
+        metadata_traj['plan'] = out_truck.tolist()
+        metadata_traj['command'] = command
+        metadata_traj['local_command_xy'] = local_command_xy
+        metadata_traj['result'] = output_data_batch[0]['img_bbox']
+        self.pid_metadata[self.step] = metadata_traj
 
         metric_info = self.get_metric_info()
         self.metric_info[self.step] = metric_info
 
-        if self.step % 1 == 0:
+        # save the result
+        if self.save_result and self.step % 1 == 0:
             self.save(tick_data)
         self.prev_control = control
         
@@ -476,24 +472,22 @@ class SparseDriveAgent(autonomous_agent.AutonomousAgent):
         return control
 
     def save(self, tick_data):
-        frame = self.step // 2  # 10 Hz / 2 = 5 Hz
+        # save the image
+        self.recorder.add_image(tick_data, self.pid_metadata[self.step])
 
-        Image.fromarray(tick_data['imgs']['CAM_FRONT']).save(self.save_path / 'rgb_front' / ('%04d.png' % frame))
-        Image.fromarray(tick_data['imgs']['CAM_FRONT_LEFT']).save(self.save_path / 'rgb_front_left' / ('%04d.png' % frame))
-        Image.fromarray(tick_data['imgs']['CAM_FRONT_RIGHT']).save(self.save_path / 'rgb_front_right' / ('%04d.png' % frame))
-        Image.fromarray(tick_data['imgs']['CAM_BACK']).save(self.save_path / 'rgb_back' / ('%04d.png' % frame))
-        Image.fromarray(tick_data['imgs']['CAM_BACK_LEFT']).save(self.save_path / 'rgb_back_left' / ('%04d.png' % frame))
-        Image.fromarray(tick_data['imgs']['CAM_BACK_RIGHT']).save(self.save_path / 'rgb_back_right' / ('%04d.png' % frame))
-        Image.fromarray(tick_data['bev']).save(self.save_path / 'bev' / ('%04d.png' % frame))
-            
-        outfile = open(self.save_path / 'meta' / ('%04d.pkl' % frame), 'wb')
-        pickle.dump(self.pid_metadata, outfile)
+        # meta info
+        outfile = open(self.save_path / 'meta_info.json', 'w')
+        json.dump(self.pid_metadata, outfile, indent=4)
         outfile.close()
 
         # metric info
         outfile = open(self.save_path / 'metric_info.json', 'w')
         json.dump(self.metric_info, outfile, indent=4)
         outfile.close()
+
+    def cleanup(self):
+        # save the video
+        self.recorder.save_video(self.video_name) if self.save_result else None
 
     def destroy(self):
         del self.model

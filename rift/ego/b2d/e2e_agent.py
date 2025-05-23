@@ -40,9 +40,9 @@ class E2E_Agent(EgoBasePolicy):
             town = config.town
             route_index = config.index
 
-            save_path = self.logger.output_dir / str(town) / f'route_{route_index}'
+            save_path = self.logger.output_dir / str(town) / 'e2e_av'
             planner.set_global_plan(gps_route, route, ego)
-            planner.setup(save_path=save_path)
+            planner.setup(save_path=save_path, route_index=route_index)
             # AV planner wrapper setup
             wrapper_planner.setup_sensors(ego)
 
@@ -66,6 +66,7 @@ class E2E_Agent(EgoBasePolicy):
     def clean_up(self):
         for planner in self.planner_list:
             planner.cleanup()
+            planner.agent().cleanup()
             planner.agent().reset()
         self.logger.log(f'>> {self.name} agent clean up.')
 

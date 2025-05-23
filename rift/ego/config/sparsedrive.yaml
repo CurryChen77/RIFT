@@ -11,6 +11,6 @@ buffer_capacity: 10000
 buffer_start_training: 100
 
 config_path: 'rift/ego/b2d/adzoo/sparsedrive/configs/sparsedrive_small_b2d_stage2.py'
-ckpt_path: 'rift/ego/b2d/ckpt/sparsedrive/sparsedrive_stage2.pth'
+ckpt_path: '/home/keyuchen/Project/ckpt/sparsedrive/sparsedrive_stage2.pth'
 
 save_result: True

@@ -4,6 +4,7 @@ import json
 import shutil
 import time
 import cv2
+from utils.e2e_recorder import E2ERecorder
 import carla
 import math
 
@@ -53,7 +54,7 @@ class VadAgent(autonomous_agent.AutonomousAgent):
 
         # init the parameters
         self._im_transform = T.Compose([T.ToTensor(), T.Normalize(mean=[0.485,0.456,0.406], std=[0.229,0.224,0.225])])
-        self.lat_ref, self.lon_ref = CarlaDataProvider.get_gps_info()
+        self.lat_ref, self.lon_ref = 42.0, 2.0
         self.lidar2img = {
         'CAM_FRONT':np.array([[ 1.14251841e+03,  8.00000000e+02,  0.00000000e+00, -9.52000000e+02],
                               [ 0.00000000e+00,  4.50000000e+02, -1.14251841e+03, -8.09704417e+02],
@@ -120,7 +121,7 @@ class VadAgent(autonomous_agent.AutonomousAgent):
         topdown_intrinsics = np.array([[548.993771650447, 0.0, 256.0, 0], [0.0, 548.993771650447, 256.0, 0], [0.0, 0.0, 1.0, 0], [0, 0, 0, 1.0]])
         self.coor2topdown = topdown_intrinsics @ self.coor2topdown
 
-    def setup(self, save_path=None):
+    def setup(self, save_path=None, route_index=None):
         self.track = autonomous_agent.Track.SENSORS
         self.steer_step = 0
         self.last_moving_status = 0
@@ -131,26 +132,18 @@ class VadAgent(autonomous_agent.AutonomousAgent):
         self.step = -1
         self.wall_start = time.time()
         self.initialized = False
-        
-        # save result related
-        self.save_path = save_path
-        if self.save_result:
-            if self.save_path.exists():
-                self.logger.log(f'>> VAD {self.save_path.name} already exists, remove it', color='red')
-                shutil.rmtree(self.save_path)
-            self.save_path.mkdir(parents=True, exist_ok=False)
-            (self.save_path / 'rgb_front').mkdir(exist_ok=True)
-            (self.save_path / 'rgb_front_right').mkdir(exist_ok=True)
-            (self.save_path / 'rgb_front_left').mkdir(exist_ok=True)
-            (self.save_path / 'rgb_back').mkdir(exist_ok=True)
-            (self.save_path / 'rgb_back_right').mkdir(exist_ok=True)
-            (self.save_path / 'rgb_back_left').mkdir(exist_ok=True)
-            (self.save_path / 'meta').mkdir(exist_ok=True)
-            (self.save_path / 'bev').mkdir(exist_ok=True)  
 
         self.takeover = False
         self.stop_time = 0
         self.takeover_time = 0
+        self.save_path = None
+        
+        # init the visualization recorder
+        if self.save_result:
+            self.recorder = E2ERecorder(save_path)
+            self.save_path = save_path
+            self.route_name = f'route_{route_index}'
+            self.save_path.mkdir(parents=True, exist_ok=True)
 
         control = carla.VehicleControl()
         control.steer = 0.0
@@ -164,6 +157,7 @@ class VadAgent(autonomous_agent.AutonomousAgent):
         self._route_planner.set_route(self._global_plan, True)
         self.initialized = True
         self.metric_info = {}
+        self.pid_metadata = {}
 
     def sensors(self):
         sensors =[
@@ -370,23 +364,25 @@ class VadAgent(autonomous_agent.AutonomousAgent):
         if throttle_traj > brake_traj: brake_traj = 0.0
 
         control = carla.VehicleControl()
-        self.pid_metadata = metadata_traj
-        self.pid_metadata['agent'] = 'only_traj'
+
+        metadata_traj['agent'] = 'only_traj'
         control.steer = np.clip(float(steer_traj), -1, 1)
         control.throttle = np.clip(float(throttle_traj), 0, 0.75)
         control.brake = np.clip(float(brake_traj), 0, 1)     
-        self.pid_metadata['steer'] = control.steer
-        self.pid_metadata['throttle'] = control.throttle
-        self.pid_metadata['brake'] = control.brake
-        self.pid_metadata['steer_traj'] = float(steer_traj)
-        self.pid_metadata['throttle_traj'] = float(throttle_traj)
-        self.pid_metadata['brake_traj'] = float(brake_traj)
-        self.pid_metadata['plan'] = out_truck.tolist()
-        self.pid_metadata['command'] = command
-        self.pid_metadata['all_plan'] = all_out_truck.tolist()
+        metadata_traj['steer'] = control.steer
+        metadata_traj['throttle'] = control.throttle
+        metadata_traj['brake'] = control.brake
+        metadata_traj['steer_traj'] = float(steer_traj)
+        metadata_traj['throttle_traj'] = float(throttle_traj)
+        metadata_traj['brake_traj'] = float(brake_traj)
+        metadata_traj['plan'] = out_truck.tolist()
+        metadata_traj['command'] = command
+        metadata_traj['all_plan'] = all_out_truck.tolist()
+        self.pid_metadata[self.step] = metadata_traj
 
         metric_info = self.get_metric_info()
         self.metric_info[self.step] = metric_info
+        # save the result
         if self.save_result and self.step % 1 == 0:
             self.save(tick_data)
         self.prev_control = control
@@ -398,24 +394,23 @@ class VadAgent(autonomous_agent.AutonomousAgent):
 
 
     def save(self, tick_data):
-        frame = self.step // 2  # 10 Hz / 2 = 5 Hz
+        # save the image
+        self.recorder.add_image(tick_data, self.pid_metadata[self.step])
 
-        Image.fromarray(tick_data['imgs']['CAM_FRONT']).save(self.save_path / 'rgb_front' / ('%04d.png' % frame))
-        Image.fromarray(tick_data['imgs']['CAM_FRONT_LEFT']).save(self.save_path / 'rgb_front_left' / ('%04d.png' % frame))
-        Image.fromarray(tick_data['imgs']['CAM_FRONT_RIGHT']).save(self.save_path / 'rgb_front_right' / ('%04d.png' % frame))
-        Image.fromarray(tick_data['imgs']['CAM_BACK']).save(self.save_path / 'rgb_back' / ('%04d.png' % frame))
-        Image.fromarray(tick_data['imgs']['CAM_BACK_LEFT']).save(self.save_path / 'rgb_back_left' / ('%04d.png' % frame))
-        Image.fromarray(tick_data['imgs']['CAM_BACK_RIGHT']).save(self.save_path / 'rgb_back_right' / ('%04d.png' % frame))
-        Image.fromarray(tick_data['bev']).save(self.save_path / 'bev' / ('%04d.png' % frame))
-
-        outfile = open(self.save_path / 'meta' / ('%04d.json' % frame), 'w')
+        # meta info
+        outfile = open(self.save_path / f'{self.route_name}_meta_info.json', 'w')
         json.dump(self.pid_metadata, outfile, indent=4)
         outfile.close()
 
         # metric info
-        outfile = open(self.save_path / 'metric_info.json', 'w')
+        outfile = open(self.save_path / f'{self.route_name}_metric_info.json', 'w')
         json.dump(self.metric_info, outfile, indent=4)
         outfile.close()
+
+    def cleanup(self):
+        # save the video
+        video_name = f'{self.route_name}_video.mp4'
+        self.recorder.save_video(video_name) if self.save_result else None
 
     def destroy(self):
         del self.model

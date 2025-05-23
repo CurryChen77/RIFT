@@ -11,6 +11,6 @@ buffer_capacity: 10000
 buffer_start_training: 100
 
 config_path: 'rift/ego/b2d/adzoo/uniad/configs/stage2_e2e/base_e2e_b2d.py'
-ckpt_path: 'rift/ego/b2d/ckpt/uniad/uniad_base_b2d.pth'
+ckpt_path: '/home/keyuchen/Project/ckpt/uniad/uniad_base_b2d.pth'
 
 save_result: True
