@@ -81,6 +81,13 @@ export CARLA_ROOT=YOUR_CARLA_PATH
 echo "$CARLA_ROOT/PythonAPI/carla/dist/carla-0.9.15-py3.7-linux-x86_64.egg" >> YOUR_CONDA_PATH/envs/YOUR_CONDA_ENV_NAME/lib/python3.7/site-packages/carla.pth # python 3.8 also works well, please set YOUR_CONDA_PATH and YOUR_CONDA_ENV_NAME
 ```
 
+Update your system's PYTHONPATH with the following paths:
+```bash
+export CARLA_ROOT=YOUR_CARLA_PATH
+export PYTHONPATH=$PYTHONPATH:${CARLA_ROOT}/PythonAPI
+export PYTHONPATH=$PYTHONPATH:${CARLA_ROOT}/PythonAPI/carla
+```
+
 **Step 2: Setup conda environment**
 
 ```bash
