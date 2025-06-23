@@ -18,6 +18,7 @@ from lightning.pytorch.loggers.wandb import WandbLogger
 from rift.cbv.planning.fine_tuner.rlft.grpo_pluto.grpo_datamodule import GRPODataModule
 from rift.cbv.planning.fine_tuner.rlft.ppo_pluto.ppo_datamodule import PPODataModule
 from rift.cbv.planning.fine_tuner.rlft.reinforce_pluto.reinforce_datamodule import ReinforceDataModule
+from rift.cbv.planning.fine_tuner.rlft.rift_pluto.rift_datamodule import RIFTDataModule
 from rift.cbv.planning.fine_tuner.sft.rs_pluto.rs_datamodule import RewardShapingDataModule
 from rift.cbv.planning.fine_tuner.sft.rtr_pluto.rtr_datamodule import RTRDataModule
 from rift.cbv.planning.fine_tuner.sft.sft_datamodule import SFTDataModule
@@ -64,6 +65,8 @@ def build_lightning_datamodule(
         data_module = ReinforceDataModule(DataModule_cfg, buffer)
     elif DataModule_cfg.type == 'rlft-grpo':
         data_module = GRPODataModule(DataModule_cfg, buffer)
+    elif DataModule_cfg.type == 'rlft-rift':
+        data_module = RIFTDataModule(DataModule_cfg, buffer)
     else:
         raise ValueError(f"DataModule type {DataModule_cfg.type} not supported.")
 
