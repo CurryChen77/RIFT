@@ -7,7 +7,7 @@ import numpy as np
 from mmcv.utils import build_from_cfg
 from mmcv.models.bricks.registry import PLUGIN_LAYERS
 
-from ...ops import feature_maps_format
+from ...ops import feature_maps_format, deformable_format
 from ...core.box3d import *
 
 from ..blocks import linear_relu_ln
@@ -18,19 +18,13 @@ class InstanceQueue(nn.Module):
         self,
         embed_dims,
         queue_length=0,
-        frame_rate=1,
         tracking_threshold=0,
         feature_map_scale=None,
-        use_ego_status=False,
-        use_tp=None,
     ):
         super(InstanceQueue, self).__init__()
         self.embed_dims = embed_dims
         self.queue_length = queue_length
-        self.frame_rate = frame_rate
         self.tracking_threshold = tracking_threshold
-        self.use_ego_status = use_ego_status
-        self.use_tp = use_tp
 
         kernel_size = tuple([int(x / 2) for x in feature_map_scale])
         self.ego_feature_encoder = nn.Sequential(
@@ -45,14 +39,6 @@ class InstanceQueue(nn.Module):
             torch.tensor([[0, 0.5, -1.84 + 1.56/2, np.log(4.08), np.log(1.73), np.log(1.56), 1, 0, 0, 0, 0],], dtype=torch.float32),
             requires_grad=False,
         )
-        if use_ego_status:
-            self.ego_status_encoder = nn.Sequential(
-                *linear_relu_ln(embed_dims, 1, 2, 10)
-            )
-        if self.use_tp is not None:
-            self.tp_encoder = nn.Sequential(
-                *linear_relu_ln(embed_dims, 1, 2, 2 * len(use_tp))
-            )
 
         self.reset()
 
@@ -67,7 +53,6 @@ class InstanceQueue(nn.Module):
         self.ego_period = None
         self.ego_feature_queue = []
         self.ego_anchor_queue = []
-        self.cache_step = -1
 
     def get(
         self,
@@ -109,9 +94,8 @@ class InstanceQueue(nn.Module):
         else:
             self.reset()
 
-        self.cache_step += 1
         self.prepare_motion(det_output, mask)
-        ego_feature, ego_anchor = self.prepare_planning(feature_maps, mask, batch_size, metas)
+        ego_feature, ego_anchor = self.prepare_planning(feature_maps, mask, batch_size)
 
         # temporal 
         temp_instance_feature = torch.stack(self.instance_feature_queue, dim=2)
@@ -135,9 +119,6 @@ class InstanceQueue(nn.Module):
         det_output,
         mask,
     ):
-        if self.cache_step % self.frame_rate != 0:
-            return
-        
         instance_feature = det_output["instance_feature"]
         det_anchors = det_output["prediction"][-1]
 
@@ -150,18 +131,29 @@ class InstanceQueue(nn.Module):
             if self.tracking_threshold > 0:
                 temp_mask = self.prev_confidence > self.tracking_threshold
                 match = match * temp_mask.unsqueeze(1)
+            
+            def match_temporal_instance(temp_instance_feature, match):
+                bs, num_inst = match.shape[:2]
+                id_indices = match.float().argmax(dim=2)
+                batch_indices = torch.arange(bs).unsqueeze(1).expand(-1, num_inst)
+                temp_instance_feature_match = temp_instance_feature[batch_indices, id_indices]
+                no_match_mask = match.sum(dim=2) == 0
+                temp_instance_feature_match[no_match_mask] = 0
+                return temp_instance_feature_match
 
             for i in range(len(self.instance_feature_queue)):
-                temp_feature = self.instance_feature_queue[i]
-                temp_feature = (
-                    match[..., None] * temp_feature[:, None]
-                ).sum(dim=2)
+                # temp_feature = self.instance_feature_queue[i]
+                # temp_feature = (
+                #     match[..., None] * temp_feature[:, None]
+                # ).sum(dim=2)
+                temp_feature = match_temporal_instance(self.instance_feature_queue[i], match)
                 self.instance_feature_queue[i] = temp_feature
 
-                temp_anchor = self.anchor_queue[i]
-                temp_anchor = (
-                    match[..., None] * temp_anchor[:, None]
-                ).sum(dim=2)
+                # temp_anchor = self.anchor_queue[i]
+                # temp_anchor = (
+                #     match[..., None] * temp_anchor[:, None]
+                # ).sum(dim=2)
+                temp_anchor = match_temporal_instance(self.anchor_queue[i], match)
                 self.anchor_queue[i] = temp_anchor
 
             self.period = (
@@ -182,11 +174,11 @@ class InstanceQueue(nn.Module):
         feature_maps,
         mask,
         batch_size,
-        metas,
     ):
         ## ego instance init
-        feature_maps_inv = feature_maps_format(feature_maps, inverse=True)
-        feature_map = feature_maps_inv[0][-1][:, 0]
+        feature_maps_inv = deformable_format(*feature_maps)
+        # feature_maps_inv = feature_maps_format(feature_maps, inverse=True)
+        feature_map = feature_maps_inv[-1][:, 0]
         ego_feature = self.ego_feature_encoder(feature_map)
         ego_feature = ego_feature.unsqueeze(1).squeeze(-1).squeeze(-1)
 
@@ -200,28 +192,6 @@ class InstanceQueue(nn.Module):
                 self.prev_ego_status.new_tensor(0),
             )
             ego_anchor[..., VY] = prev_ego_status[..., 6]
-
-        if self.use_ego_status:
-            ego_status = metas["ego_status"]
-            ego_status_embed = self.ego_status_encoder(ego_status)
-            ego_feature = ego_feature + ego_status_embed[:, None]
-            ego_anchor[..., VY] = ego_status[:, [6]]
-        
-        try:
-            if self.use_tp is not None:
-                if len(self.use_tp) == 2:
-                    tp = torch.cat([metas['tp_near'], metas['tp_far']], dim=1)
-                elif self.use_tp[0] == 'near':
-                    tp = metas['tp_near']
-                else:
-                    tp = metas['tp_far']
-                tp_embedding = self.tp_encoder(tp.float())
-                ego_feature = ego_feature + tp_embedding[:, None]
-        except:
-            import ipdb; ipdb.set_trace()
-
-        if self.cache_step % self.frame_rate != 0:
-            return ego_feature, ego_anchor
 
         if self.ego_period == None:
             self.ego_period = ego_feature.new_zeros((batch_size, 1)).long()
@@ -244,9 +214,6 @@ class InstanceQueue(nn.Module):
         return ego_feature, ego_anchor
 
     def cache_motion(self, instance_feature, det_output, metas):
-        if self.cache_step % self.frame_rate != 0:
-            return
-        
         det_classification = det_output["classification"][-1].sigmoid()
         det_confidence = det_classification.max(dim=-1).values
         instance_id = det_output['instance_id']
@@ -255,8 +222,5 @@ class InstanceQueue(nn.Module):
         self.prev_instance_id = instance_id
 
     def cache_planning(self, ego_feature, ego_status):
-        if self.cache_step % self.frame_rate != 0:
-            return
-        
         self.prev_ego_status = ego_status.detach()
         self.ego_feature_queue[-1] = ego_feature.detach()

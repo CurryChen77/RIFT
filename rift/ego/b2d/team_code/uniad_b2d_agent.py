@@ -140,7 +140,7 @@ class UniadAgent(autonomous_agent.AutonomousAgent):
         if self.save_result:
             self.recorder = E2ERecorder(save_path)
             self.save_path = save_path
-            self.route_name = f'route_{route_index}.mp4'
+            self.route_name = f'route_{route_index}'
             self.save_path.mkdir(parents=True, exist_ok=True)
 
         control = carla.VehicleControl()
@@ -338,8 +338,8 @@ class UniadAgent(autonomous_agent.AutonomousAgent):
         input_data_batch = mm_collate_to_batch_form([results], samples_per_gpu=1)
         for key, data in input_data_batch.items():
             if key != 'img_metas':
-                if torch.is_tensor(data[0]):
-                    data[0] = data[0].to(self.device)
+                if torch.is_tensor(data):
+                    input_data_batch[key] = data.to(self.device)
         output_data_batch = self.model(input_data_batch, return_loss=False, rescale=True)
         out_truck =  output_data_batch[0]['planning']['result_planning']['sdc_traj'][0].cpu().numpy()
         steer_traj, throttle_traj, brake_traj, metadata_traj = self.pidcontroller.control_pid(out_truck, tick_data['speed'], local_command_xy)

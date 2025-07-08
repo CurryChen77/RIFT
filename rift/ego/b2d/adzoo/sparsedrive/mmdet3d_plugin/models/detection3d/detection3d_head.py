@@ -170,6 +170,7 @@ class Sparse4DHead(BaseModule):
         self,
         feature_maps: Union[torch.Tensor, List],
         metas: dict,
+        depth_prob,
     ):
         if isinstance(feature_maps, torch.Tensor):
             feature_maps = [feature_maps]
@@ -292,6 +293,7 @@ class Sparse4DHead(BaseModule):
                     anchor_embed,
                     feature_maps,
                     metas,
+                    depth_prob,
                 )
             elif op == "refine":
                 anchor, cls, qt = self.layers[i](

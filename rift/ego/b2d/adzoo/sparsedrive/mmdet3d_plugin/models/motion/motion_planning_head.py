@@ -61,7 +61,6 @@ class MotionPlanningHead(BaseModule):
         planning_decoder=None,
         num_det=50,
         num_map=10,
-        use_tp=None,
     ):
         super(MotionPlanningHead, self).__init__()
         self.fut_ts = fut_ts
@@ -128,26 +127,18 @@ class MotionPlanningHead(BaseModule):
         )
 
         # plan anchor init
-        if plan_anchor is not None:
-            plan_anchor = np.load(plan_anchor)
-            self.plan_anchor = nn.Parameter(
-                torch.tensor(plan_anchor, dtype=torch.float32),
-                requires_grad=False,
-            )
-            self.plan_anchor_encoder = nn.Sequential(
-                *linear_relu_ln(embed_dims, 1, 1),
-                Linear(embed_dims, embed_dims),
-            )
-        else:
-            self.plan_mode_embedding = nn.Embedding(self.ego_fut_mode, embed_dims)
+        plan_anchor = np.load(plan_anchor)
+        self.plan_anchor = nn.Parameter(
+            torch.tensor(plan_anchor, dtype=torch.float32),
+            requires_grad=False,
+        )
+        self.plan_anchor_encoder = nn.Sequential(
+            *linear_relu_ln(embed_dims, 1, 1),
+            Linear(embed_dims, embed_dims),
+        )
 
         self.num_det = num_det
         self.num_map = num_map
-        self.use_tp = use_tp
-        if self.use_tp is not None:
-            self.tp_encoder = nn.Sequential(
-                *linear_relu_ln(embed_dims, 1, 2, 2)
-            )
 
     def init_weights(self):
         for i, op in enumerate(self.operation_order):
@@ -264,21 +255,16 @@ class MotionPlanningHead(BaseModule):
         temp_anchor_embed = temp_anchor_embed.flatten(0, 1)
         temp_mask = temp_mask.flatten(0, 1)
 
-        # =========== motion init ===========
+        # =========== mode anchor init ===========
         motion_anchor = self.get_motion_anchor(det_classification, det_anchors)
-        motion_mode_query = self.motion_anchor_encoder(gen_sineembed_for_position(motion_anchor[..., -1, :]))
+        plan_anchor = torch.tile(
+            self.plan_anchor[None], (bs, 1, 1, 1, 1)
+        )
 
-        # =========== plan init ===========
-        if hasattr(self, "plan_anchor"):
-            plan_anchor = torch.tile(
-                self.plan_anchor[None], (bs, 1, 1, 1, 1)
-            )
-            plan_pos = gen_sineembed_for_position(plan_anchor[..., -1, :])
-            plan_mode_query = self.plan_anchor_encoder(plan_pos).flatten(1, 2).unsqueeze(1)
-        else:
-            plan_mode_query = torch.tile(
-                self.plan_mode_embedding.weight[None, None], (bs, 1, 1, 1)
-            )
+        # =========== mode query init ===========
+        motion_mode_query = self.motion_anchor_encoder(gen_sineembed_for_position(motion_anchor[..., -1, :]))
+        plan_pos = gen_sineembed_for_position(plan_anchor[..., -1, :])
+        plan_mode_query = self.plan_anchor_encoder(plan_pos).flatten(1, 2).unsqueeze(1)
 
         # =========== cat instance and ego ===========
         instance_feature_selected = torch.cat([instance_feature_selected, ego_feature], dim=1)
@@ -326,11 +312,8 @@ class MotionPlanningHead(BaseModule):
                     key_pos=map_anchor_embed_selected,
                 )
             elif op == "refine":
-                if self.use_tp:
-                    tp_embedding = self.tp_encoder(metas["tp_near"].float())
-                    instance_feature[:, num_anchor:] = instance_feature[:, num_anchor:] + tp_embedding[:, None]
                 motion_query = motion_mode_query + (instance_feature + anchor_embed)[:, :num_anchor].unsqueeze(2)
-                plan_query = plan_mode_query + (instance_feature + anchor_embed)[:, num_anchor:].unsqueeze(2)
+                plan_query = plan_mode_query + (instance_feature + anchor_embed)[:, num_anchor:].unsqueeze(2) 
                 (
                     motion_cls,
                     motion_reg,
@@ -342,7 +325,6 @@ class MotionPlanningHead(BaseModule):
                     plan_query,
                     instance_feature[:, num_anchor:],
                     anchor_embed[:, num_anchor:],
-                    metas,
                 )
                 motion_classification.append(motion_cls)
                 motion_prediction.append(motion_reg)

@@ -73,7 +73,6 @@ class SparseDriveAgent(autonomous_agent.AutonomousAgent):
 
                     for m in _module_dir[1:]:
                         _module_path = _module_path + "." + m
-                    print(_module_path)
                     plg_lib = importlib.import_module(_module_path)
   
         self.model = build_model(cfg.model, train_cfg=cfg.get('train_cfg'), test_cfg=cfg.get('test_cfg'))
@@ -184,13 +183,8 @@ class SparseDriveAgent(autonomous_agent.AutonomousAgent):
         if self.save_result:
             self.recorder = E2ERecorder(save_path)
             self.save_path = save_path
-            self.video_name = f'route_{route_index}.mp4'
+            self.route_name = f'route_{route_index}'
             self.save_path.mkdir(parents=True, exist_ok=True)
-
-        self.clock = Clock() 
-
-        self.stuck_detector = 0
-        self.forced_move = 0
 
     def _init(self):   
         self._route_planner = RoutePlanner(4.0, 50.0, lat_ref=self.lat_ref, lon_ref=self.lon_ref)
@@ -337,9 +331,7 @@ class SparseDriveAgent(autonomous_agent.AutonomousAgent):
     def run_step(self, input_data, timestamp):
         if not self.initialized:
             self._init()
-        self.clock.count("start")
         tick_data = self.tick(input_data)
-        self.clock.count("tick")
 
         results = {}
         results['timestamp'] = self.step / CarlaDataProvider.get_frame_rate()  # remove the fixed 20
@@ -408,36 +400,16 @@ class SparseDriveAgent(autonomous_agent.AutonomousAgent):
         results["aug_config"] = aug_config
         results = self.test_pipeline(results)
         input_data_batch = mm_collate_to_batch_form([results], samples_per_gpu=1)
-
         for key, data in input_data_batch.items():
             if key != 'img_metas':
                 if torch.is_tensor(data):
-                    data = data.to(self.device)
-        self.clock.count("data")
+                    input_data_batch[key] = data.to(self.device)
         output_data_batch = self.model(**input_data_batch)
-        self.clock.count("model")
         out_truck = output_data_batch[0]['img_bbox']['final_planning'].numpy()
-        
-        ## creep
-        is_stuck = False
-        if(self.stuck_detector > 150 and self.forced_move < 15):
-            print("Detected agent being stuck. Move for frame: ", self.forced_move)
-            is_stuck = True
-            self.forced_move += 1
 
-        steer_traj, throttle_traj, brake_traj, metadata_traj = self.pidcontroller.control_pid(out_truck, tick_data['speed'], local_command_xy, is_stuck)
+        steer_traj, throttle_traj, brake_traj, metadata_traj = self.pidcontroller.control_pid(out_truck, tick_data['speed'], local_command_xy)
         if brake_traj < 0.05: brake_traj = 0.0
         if throttle_traj > brake_traj: brake_traj = 0.0
-
-        if is_stuck:
-            steer_traj *= 0.5
-
-        if(tick_data['speed'] < 0.1): # 0.1 is just an arbitrary low number to threshhold when the car is stopped
-            self.stuck_detector += 1
-
-        elif(tick_data['speed'] > 0.1 and is_stuck == False):
-            self.stuck_detector = 0
-            self.forced_move    = 0
 
         control = carla.VehicleControl()
 
@@ -453,8 +425,6 @@ class SparseDriveAgent(autonomous_agent.AutonomousAgent):
         metadata_traj['brake_traj'] = float(brake_traj)
         metadata_traj['plan'] = out_truck.tolist()
         metadata_traj['command'] = command
-        metadata_traj['local_command_xy'] = local_command_xy
-        metadata_traj['result'] = output_data_batch[0]['img_bbox']
         self.pid_metadata[self.step] = metadata_traj
 
         metric_info = self.get_metric_info()
@@ -476,18 +446,19 @@ class SparseDriveAgent(autonomous_agent.AutonomousAgent):
         self.recorder.add_image(tick_data, self.pid_metadata[self.step])
 
         # meta info
-        outfile = open(self.save_path / 'meta_info.json', 'w')
+        outfile = open(self.save_path / f'{self.route_name}_meta_info.json', 'w')
         json.dump(self.pid_metadata, outfile, indent=4)
         outfile.close()
 
         # metric info
-        outfile = open(self.save_path / 'metric_info.json', 'w')
+        outfile = open(self.save_path / f'{self.route_name}_metric_info.json', 'w')
         json.dump(self.metric_info, outfile, indent=4)
         outfile.close()
 
     def cleanup(self):
         # save the video
-        self.recorder.save_video(self.video_name) if self.save_result else None
+        video_name = f'{self.route_name}_video.mp4'
+        self.recorder.save_video(video_name) if self.save_result else None
 
     def destroy(self):
         del self.model

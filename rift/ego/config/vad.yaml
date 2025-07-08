@@ -11,6 +11,6 @@ buffer_capacity: 10000
 buffer_start_training: 100
 
 config_path: 'rift/ego/b2d/adzoo/vad/configs/VAD/VAD_base_e2e_b2d.py'
-ckpt_path: '/home/keyuchen/Project/ckpt/vad/vad_b2d_base.pth'
+ckpt_path: 'rift/ego/b2d/ckpt/vad/vad_b2d_base.pth'
 
 save_result: True

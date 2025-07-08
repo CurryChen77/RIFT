@@ -1,5 +1,4 @@
 import os
-
 import torch
 from setuptools import setup
 from torch.utils.cpp_extension import (
@@ -44,6 +43,20 @@ def make_cuda_ext(
 
 
 if __name__ == "__main__":
+    setup(
+        name="deformable_aggregation_with_depth_ext",
+        ext_modules=[
+            make_cuda_ext(
+                "deformable_aggregation_with_depth_ext",
+                module=".",
+                sources=[
+                    f"src/deformable_aggregation_with_depth.cpp",
+                    f"src/deformable_aggregation_with_depth_cuda.cu",
+                ],
+            ),
+        ],
+        cmdclass={"build_ext": BuildExtension},
+    )
     setup(
         name="deformable_aggregation_ext",
         ext_modules=[

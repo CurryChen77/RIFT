@@ -62,7 +62,7 @@ class VideoRender():
                 self.logger.log(f">> Existing file deleted: {video_path}", color="red")
             
             imageio.mimsave(video_path, combined_imgs, codec='libx264', format='ffmpeg')
-        self.logger.log(f">> video saved to {video_path}", color="yellow")
+            self.logger.log(f">> video saved to {video_path}", color="yellow")
         
         self.reset_image_dict()
         self._scene_render.clean_up()

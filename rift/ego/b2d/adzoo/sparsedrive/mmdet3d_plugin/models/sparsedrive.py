@@ -15,7 +15,7 @@ from mmcv.models import (
 from .grid_mask import GridMask
 
 try:
-    from ..ops import feature_maps_format
+    from ..ops import feature_maps_format, deformable_format
     DAF_VALID = True
 except:
     DAF_VALID = False
@@ -95,12 +95,18 @@ class SparseDrive(BaseDetector):
             feature_maps[i] = torch.reshape(
                 feat, (bs, num_cams) + feat.shape[1:]
             )
+        # if return_depth and self.depth_branch is not None:
+        #     depths = self.depth_branch(feature_maps, metas.get("focal"))
+        # else:
+        #     depths = None
+        if self.use_deformable_func:
+            # feature_maps = feature_maps_format(feature_maps)
+            feature_maps = deformable_format(feature_maps)
+            
         if return_depth and self.depth_branch is not None:
-            depths = self.depth_branch(feature_maps, metas.get("focal"))
+            depths = self.depth_branch(feature_maps[0])
         else:
             depths = None
-        if self.use_deformable_func:
-            feature_maps = feature_maps_format(feature_maps)
         if return_depth:
             return feature_maps, depths
         return feature_maps
@@ -113,13 +119,17 @@ class SparseDrive(BaseDetector):
             return self.forward_test(img, **data)
 
     def forward_train(self, img, **data):
-        feature_maps, depths = self.extract_feat(img, True, data)
-        model_outs = self.head(feature_maps, data)
+        feature_maps, depth_prob = self.extract_feat(img, True, data)
+        model_outs = self.head(feature_maps, data, depth_prob)
         output = self.head.loss(model_outs, data)
-        if depths is not None and "gt_depth" in data:
-            output["loss_dense_depth"] = self.depth_branch.loss(
-                depths, data["gt_depth"]
+        if depth_prob is not None and "depth_prob_gt" in data:
+            output["loss_depth"] = self.depth_branch.loss(
+                depth_prob, data
             )
+        # if depths is not None and "gt_depth" in data:
+        #     output["loss_dense_depth"] = self.depth_branch.loss(
+        #         depths, data["gt_depth"]
+        #     )
         return output
 
     def forward_test(self, img, **data):
@@ -129,9 +139,11 @@ class SparseDrive(BaseDetector):
             return self.simple_test(img, **data)
 
     def simple_test(self, img, **data):
-        feature_maps = self.extract_feat(img)
+        feature_maps, depth_prob = self.extract_feat(img, True)
+        # feature_maps = self.extract_feat(img, False)
+        # depth_prob = None
 
-        model_outs = self.head(feature_maps, data)
+        model_outs = self.head(feature_maps, data, depth_prob)
         results = self.head.post_process(model_outs, data)
         output = [{"img_bbox": result} for result in results]
         return output
@@ -142,3 +154,4 @@ class SparseDrive(BaseDetector):
             if isinstance(data[key], list):
                 data[key] = data[key][0]
         return self.simple_test(img[0], **data)
+

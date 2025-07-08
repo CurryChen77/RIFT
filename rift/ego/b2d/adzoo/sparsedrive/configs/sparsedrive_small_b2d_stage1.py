@@ -190,12 +190,12 @@ model = dict(
         relu_before_extra_convs=True,
         in_channels=[256, 512, 1024, 2048],
     ),
-    depth_branch=dict(  # for auxiliary supervision only
-        type="DenseDepthNet",
-        embed_dims=embed_dims,
-        num_depth_layers=num_depth_layers,
-        loss_weight=0.2,
-    ),
+    # depth_branch=dict(  # for auxiliary supervision only
+    #     type="DenseDepthNet",
+    #     embed_dims=embed_dims,
+    #     num_depth_layers=num_depth_layers,
+    #     loss_weight=0.2,
+    # ),
     head=dict(
         type="SparseDriveHead",
         task_config=task_config,
@@ -245,7 +245,7 @@ model = dict(
                 * (num_decoder - num_single_frame_decoder)
             )[2:],
             temp_graph_model=dict(
-                type="MultiheadFlashAttention",
+                type="MultiheadAttention",
                 embed_dims=embed_dims if not decouple_attn else embed_dims * 2,
                 num_heads=num_groups,
                 batch_first=True,
@@ -254,7 +254,7 @@ model = dict(
             if temporal
             else None,
             graph_model=dict(
-                type="MultiheadFlashAttention",
+                type="MultiheadAttention",
                 embed_dims=embed_dims if not decouple_attn else embed_dims * 2,
                 num_heads=num_groups,
                 batch_first=True,
@@ -386,7 +386,7 @@ model = dict(
                 * (num_decoder - num_single_frame_decoder_map)
             )[:],
             temp_graph_model=dict(
-                type="MultiheadFlashAttention",
+                type="MultiheadAttention",
                 embed_dims=embed_dims if not decouple_attn_map else embed_dims * 2,
                 num_heads=num_groups,
                 batch_first=True,
@@ -395,7 +395,7 @@ model = dict(
             if temporal_map
             else None,
             graph_model=dict(
-                type="MultiheadFlashAttention",
+                type="MultiheadAttention",
                 embed_dims=embed_dims if not decouple_attn_map else embed_dims * 2,
                 num_heads=num_groups,
                 batch_first=True,
@@ -485,8 +485,8 @@ model = dict(
             fut_mode=fut_mode,
             ego_fut_ts=ego_fut_ts,
             ego_fut_mode=ego_fut_mode,
-            motion_anchor=f'data/kmeans/kmeans_motion_{fut_mode}.npy',
-            plan_anchor=f'data/kmeans/kmeans_plan_{ego_fut_mode}.npy',
+            motion_anchor=f'rift/ego/b2d/ckpt/sparsedrive/kmeans/kmeans_motion_{fut_mode}.npy',
+            plan_anchor=f'rift/ego/b2d/ckpt/sparsedrive/kmeans/kmeans_plan_{ego_fut_mode}_b2d.npy',
             embed_dims=embed_dims,
             decouple_attn=decouple_attn_motion,
             instance_queue=dict(
@@ -518,14 +518,14 @@ model = dict(
                 dropout=drop_out,
             ),
             graph_model=dict(
-                type="MultiheadFlashAttention",
+                type="MultiheadAttention",
                 embed_dims=embed_dims if not decouple_attn_motion else embed_dims * 2,
                 num_heads=num_groups,
                 batch_first=True,
                 dropout=drop_out,
             ),
             cross_graph_model=dict(
-                type="MultiheadFlashAttention",
+                type="MultiheadAttention",
                 embed_dims=embed_dims,
                 num_heads=num_groups,
                 batch_first=True,

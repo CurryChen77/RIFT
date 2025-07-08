@@ -20,6 +20,7 @@ scipy
 scikit-learn
 open3d
 networkx
+ipdb
 ipython
 opencv-python
 seaborn

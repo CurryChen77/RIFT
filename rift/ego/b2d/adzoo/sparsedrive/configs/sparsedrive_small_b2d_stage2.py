@@ -147,7 +147,7 @@ fut_ts = 6
 fut_mode = 6
 ego_fut_ts = 6
 ego_fut_mode = 6
-num_cmd = 1
+num_cmd = 6
 queue_length = 4 # history + current
 
 embed_dims = 256
@@ -177,6 +177,9 @@ model = dict(
     type="SparseDrive",
     use_grid_mask=True,
     use_deformable_func=use_deformable_func,
+    freeze_backbone=True,
+    freeze_neck=True,
+    freeze_perception=False,
     img_backbone=dict(
         type="ResNet",
         depth=50,
@@ -187,7 +190,7 @@ model = dict(
         with_cp=True,
         out_indices=(0, 1, 2, 3),
         norm_cfg=dict(type="BN", requires_grad=True),
-        pretrained=os.path.join(base_dir, "ckpt/resnet50-19c8e357.pth"),
+        pretrained="rift/ego/b2d/ckpt/resnet50-19c8e357.pth",
     ),
     img_neck=dict(
         type="FPN",
@@ -215,7 +218,7 @@ model = dict(
                 type="InstanceBank",
                 num_anchor=900,
                 embed_dims=embed_dims,
-                anchor=os.path.join(base_dir, "ckpt/sparsedrive/kmeans/kmeans_det_900.npy"),
+                anchor="rift/ego/b2d/ckpt/sparsedrive/kmeans/kmeans_det_900.npy",
                 anchor_handler=dict(type="SparseBox3DKeyPointsGenerator"),
                 num_temp_instances=600 if temporal else -1,
                 confidence_decay=0.9,
@@ -253,7 +256,7 @@ model = dict(
                 * (num_decoder - num_single_frame_decoder)
             )[2:],
             temp_graph_model=dict(
-                type="MultiheadFlashAttention",
+                type="MultiheadAttention",
                 embed_dims=embed_dims if not decouple_attn else embed_dims * 2,
                 num_heads=num_groups,
                 batch_first=True,
@@ -262,7 +265,7 @@ model = dict(
             if temporal
             else None,
             graph_model=dict(
-                type="MultiheadFlashAttention",
+                type="MultiheadAttention",
                 embed_dims=embed_dims if not decouple_attn else embed_dims * 2,
                 num_heads=num_groups,
                 batch_first=True,
@@ -360,7 +363,7 @@ model = dict(
                 type="InstanceBank",
                 num_anchor=100,
                 embed_dims=embed_dims,
-                anchor=os.path.join(base_dir, "ckpt/sparsedrive/kmeans/kmeans_map_100.npy"),
+                anchor="rift/ego/b2d/ckpt/sparsedrive/kmeans/kmeans_map_100.npy",
                 anchor_handler=dict(type="SparsePoint3DKeyPointsGenerator"),
                 num_temp_instances=0 if temporal_map else -1,
                 confidence_decay=0.9,
@@ -394,7 +397,7 @@ model = dict(
                 * (num_decoder - num_single_frame_decoder_map)
             )[:],
             temp_graph_model=dict(
-                type="MultiheadFlashAttention",
+                type="MultiheadAttention",
                 embed_dims=embed_dims if not decouple_attn_map else embed_dims * 2,
                 num_heads=num_groups,
                 batch_first=True,
@@ -403,7 +406,7 @@ model = dict(
             if temporal_map
             else None,
             graph_model=dict(
-                type="MultiheadFlashAttention",
+                type="MultiheadAttention",
                 embed_dims=embed_dims if not decouple_attn_map else embed_dims * 2,
                 num_heads=num_groups,
                 batch_first=True,
@@ -493,20 +496,16 @@ model = dict(
             fut_mode=fut_mode,
             ego_fut_ts=ego_fut_ts,
             ego_fut_mode=ego_fut_mode,
-            motion_anchor=os.path.join(base_dir, f'ckpt/sparsedrive/kmeans/kmeans_motion_{fut_mode}.npy'),
-            # plan_anchor=None,
-            plan_anchor=os.path.join(base_dir, f'ckpt/sparsedrive/kmeans/kmeans_plan_{ego_fut_mode}.npy'),
+            motion_anchor=f'rift/ego/b2d/ckpt/sparsedrive/kmeans/kmeans_motion_{fut_mode}.npy',
+            plan_anchor=f'rift/ego/b2d/ckpt/sparsedrive/kmeans/kmeans_plan_{ego_fut_mode}_b2d.npy',
             embed_dims=embed_dims,
             decouple_attn=decouple_attn_motion,
             instance_queue=dict(
                 type="InstanceQueue",
                 embed_dims=embed_dims,
                 queue_length=queue_length,
-                frame_rate=1,
                 tracking_threshold=0.2,
                 feature_map_scale=(input_shape[1]/strides[-1], input_shape[0]/strides[-1]),
-                use_ego_status=False,
-                use_tp=['near',],
             ),
             operation_order=(
                 [
@@ -530,14 +529,14 @@ model = dict(
                 dropout=drop_out,
             ),
             graph_model=dict(
-                type="MultiheadFlashAttention",
+                type="MultiheadAttention",
                 embed_dims=embed_dims if not decouple_attn_motion else embed_dims * 2,
                 num_heads=num_groups,
                 batch_first=True,
                 dropout=drop_out,
             ),
             cross_graph_model=dict(
-                type="MultiheadFlashAttention",
+                type="MultiheadAttention",
                 embed_dims=embed_dims,
                 num_heads=num_groups,
                 batch_first=True,
@@ -562,7 +561,6 @@ model = dict(
                 ego_fut_ts=ego_fut_ts,
                 ego_fut_mode=ego_fut_mode,
                 num_cmd=num_cmd,
-                use_gru=False,
             ),
             motion_sampler=dict(
                 type="MotionTarget",

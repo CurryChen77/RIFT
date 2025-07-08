@@ -42,14 +42,15 @@ class SparseDriveHead(BaseModule):
         self,
         feature_maps: Union[torch.Tensor, List],
         metas: dict,
+        depth_prob,
     ):
         if self.task_config['with_det']:
-            det_output = self.det_head(feature_maps, metas)
+            det_output = self.det_head(feature_maps, metas, depth_prob)
         else:
             det_output = None
 
         if self.task_config['with_map']:
-            map_output = self.map_head(feature_maps, metas)
+            map_output = self.map_head(feature_maps, metas, depth_prob)
         else:
             map_output = None
         

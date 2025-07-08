@@ -113,14 +113,14 @@ class HierarchicalPlanningDecoder(object):
         self,
         ego_fut_ts,
         ego_fut_mode,
-        num_cmd=3,
         use_rescore=False,
+        num_cmd=3,
     ):
         super(HierarchicalPlanningDecoder, self).__init__()
         self.ego_fut_ts = ego_fut_ts
         self.ego_fut_mode = ego_fut_mode
-        self.num_cmd = num_cmd
         self.use_rescore = use_rescore
+        self.num_cmd = num_cmd
     
     def decode(
         self, 

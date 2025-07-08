@@ -78,7 +78,7 @@ class MapQueriesCost(object):
         # regression cost
         regkwargs = {}
         if 'masks' in preds and 'masks' in gts:
-            assert isinstance(self.reg_cost, DynamicLinesCost), ' Issues!!'
+            # assert isinstance(self.reg_cost, DynamicLinesCost), ' Issues!!'
             regkwargs = {
                 'masks_pred': preds['masks'],
                 'masks_gt': gts['masks'],
