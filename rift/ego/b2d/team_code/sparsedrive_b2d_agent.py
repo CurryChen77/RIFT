@@ -293,7 +293,7 @@ class SparseDriveAgent(autonomous_agent.AutonomousAgent):
         encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 80]  # change from 20 to 80
         imgs = {}
         for cam in ['CAM_FRONT', 'CAM_FRONT_RIGHT', 'CAM_FRONT_LEFT', 'CAM_BACK', 'CAM_BACK_LEFT', 'CAM_BACK_RIGHT']:
-            img = input_data[cam][1][:, :, :3]
+            img = cv2.cvtColor(input_data[cam][1][:, :, :3], cv2.COLOR_BGR2RGB)
             _, img = cv2.imencode('.jpg', img, encode_param)
             img = cv2.imdecode(img, cv2.IMREAD_COLOR)
             imgs[cam] = img
