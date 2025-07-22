@@ -10,19 +10,15 @@
     <a href="https://currychen77.github.io/RIFT/"><img src="https://img.shields.io/badge/Project%20Page-white?logo=GitHub&color=green?style=flat-square" alt="Custom badge" style="width: 110px;"></a>
 </div>
 
-<table style="border-collapse: collapse; width: 100%; table-layout: fixed;">
-  <tr>
-    <td style="border: 0; padding: 0; width: 50%;">
-      <img src="./assets/route_125.gif" style="width: 99%; border: 0px solid gray;">
-    </td>
-    <td style="border: 0; padding: 0; width: 50%;">
-      <img src="./assets/route_129.gif" style="width: 99%; border: 0px solid gray;">
-    </td>
-  </tr>
-</table>
+<div style="text-align: center">
+  <img style="border:2px solid #263b50;" src="./assets/SparseDrive-RIFT.gif"/>
+  <p><b>Left: AV View (SparseDrive as AV)&emsp;&emsp; Right: Scenario View (RIFT as CBV)
+</b></p>
+</div>
 
 ##  :sparkles: News
 
+- **`2025-07-22`** Support for E2E AV is available [here](https://github.com/CurryChen77/RIFT/tree/feature/e2e), with [doc](https://github.com/CurryChen77/RIFT/blob/feature/e2e/rift/ego/b2d/README.md)📄!
 - **`2025-05-07`** Explore our project page, now live [here](https://currychen77.github.io/RIFT)🔗!
 - **`2025-05-07`** Our paper is available on [arXiv](https://arxiv.org/abs/2505.03344)📄!
 
@@ -47,6 +43,7 @@ If you find our work useful, Please give us a star 🌟!
 ### TODO List
 
 - [ ] full model checkpoint
+- [x] E2E AV (UniAD, VAD, SparseDrive)
 - [x] training code
 - [x] initial repo & paper
 
@@ -126,6 +123,9 @@ pip install -e .
 | :----------: | :----------------------------------------------------------: | :----------: | :------------------------------------------: |
 | PlanT_medium | [Link](https://drive.google.com/drive/folders/1RdOYMJIbSEb07_32v89brobYiqt9c81d?usp=drive_link) |    695 MB    | [Folder](./rift/ego/model_ckpt/PlanT_medium) |
 
+For the **E2E AV Checkpoint**, please check the [documentation](https://github.com/CurryChen77/RIFT/blob/feature/e2e/rift/ego/b2d/README.md).
+
+
 * **CBV Checkpoint**
 
 |        CBV Name        |                         Google Drive                         | Approx. Size |                 Storage Place                  |
@@ -184,6 +184,8 @@ python tools/plot/plot_distribution.py
 ```bash
 python tools/plot/plot_eval_results.py
 ```
+
+Evaluation results of the paper are provided [here](eval.ipynb).
 
 ### Visualization
 
