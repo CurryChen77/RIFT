@@ -353,8 +353,8 @@ class VadAgent(autonomous_agent.AutonomousAgent):
         input_data_batch = mm_collate_to_batch_form([results], samples_per_gpu=1)
         for key, data in input_data_batch.items():
             if key != 'img_metas':
-                if torch.is_tensor(data):
-                    input_data_batch[key] = data.to(self.device)
+                if torch.is_tensor(data[0]):
+                    data[0] = data[0].to(self.device)
         output_data_batch = self.model(input_data_batch, return_loss=False, rescale=True)
         all_out_truck_d1 = output_data_batch[0]['pts_bbox']['ego_fut_preds'].cpu().numpy()
         all_out_truck =  np.cumsum(all_out_truck_d1,axis=1)

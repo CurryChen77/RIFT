@@ -338,8 +338,8 @@ class UniadAgent(autonomous_agent.AutonomousAgent):
         input_data_batch = mm_collate_to_batch_form([results], samples_per_gpu=1)
         for key, data in input_data_batch.items():
             if key != 'img_metas':
-                if torch.is_tensor(data):
-                    input_data_batch[key] = data.to(self.device)
+                if torch.is_tensor(data[0]):
+                    data[0] = data[0].to(self.device)
         output_data_batch = self.model(input_data_batch, return_loss=False, rescale=True)
         out_truck =  output_data_batch[0]['planning']['result_planning']['sdc_traj'][0].cpu().numpy()
         steer_traj, throttle_traj, brake_traj, metadata_traj = self.pidcontroller.control_pid(out_truck, tick_data['speed'], local_command_xy)
