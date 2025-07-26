@@ -52,6 +52,9 @@ def setup_simulation(args, carla_device_id):
 
     # the command to start the carla server
     cmd1 = f"{os.path.join(carla_path, 'CarlaUE4.sh')} -RenderOffScreen -nosound -carla-rpc-port={args.port} -graphicsadapter={carla_device_id}"
+    if not args.render:
+        cmd1 += " -nullrhi"
+        print(">> Running Carla without GPU!", flush=True)
     # user the subprocess.Popen to start the server in the background
     server = subprocess.Popen(cmd1, shell=True, preexec_fn=os.setsid)
     print(">> Starting Carla:", cmd1, server.returncode, flush=True)
