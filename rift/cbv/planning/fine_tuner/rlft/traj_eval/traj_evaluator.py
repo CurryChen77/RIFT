@@ -15,6 +15,7 @@ from typing import List
 from shapely import Point, Polygon
 from shapely.strtree import STRtree
 
+from rift.cbv.planning.fine_tuner.rlft.traj_eval.track_propogate import TrackPropagate
 from rift.cbv.planning.pluto.utils.nuplan_map_utils import CarlaMap
 from rift.cbv.planning.pluto.utils.nuplan_state_utils import CarlaAgentState
 from rift.ego.pdm_lite.config import GlobalConfig
@@ -103,6 +104,8 @@ class TrajEvaluator:
 
         self.config = GlobalConfig()
 
+        self.center_rollout_model = TrackPropagate(virtual_time_step=self.dt)
+
         # other vehicle forward simulation
         self.other_vehicle_model = KinematicBicycleModel(self.config)
 
@@ -116,60 +119,42 @@ class TrajEvaluator:
             init_speed: the initial speed of the vehicle
         '''
         # only keey the x, y, heading
-        trajectories = trajectories.cpu().numpy()
-        angle = np.arctan2(trajectories[..., 3], trajectories[..., 2])
-        out_trajectory = np.concatenate(
-            [trajectories[..., :2], angle[..., np.newaxis]], axis=-1
-        )
+        device, dtype = trajectories.device, trajectories.dtype
+        heading = torch.atan2(trajectories[..., 3], trajectories[..., 2])  # [R, M, T]
+        out_trajectory = torch.cat(
+            [trajectories[..., :2], heading[..., np.newaxis]], axis=-1
+        )  # [R, M, T, 3]
 
         # merge the R and M dim
         R, M, T, C = out_trajectory.shape
-        G = R * M
         out_trajectory = out_trajectory.reshape(-1, T, C)  # [R*M, T, 3]
 
         # to global
-        origin = center_history_states[-1].rear_axle.array
-        angle = center_history_states[-1].rear_axle.heading
+        center_cur_pos = torch.tensor(center_history_states[-1].rear_axle.array, device=device, dtype=dtype)  # [2,]
+        center_cur_heading = torch.tensor(center_history_states[-1].rear_axle.heading, device=device, dtype=dtype)
 
         # force the first point to be (0, 0)
         first_points = out_trajectory[:, 0, :2]
-        out_trajectory[:, :, :2] -= first_points[:, np.newaxis, :]
+        out_trajectory[:, :, :2] -= first_points.unsqueeze(1)
+        
+        cos_h = torch.cos(center_cur_heading)
+        sin_h = torch.sin(center_cur_heading)
+        rot_mat = torch.stack((
+            torch.stack([ cos_h,  sin_h], dim=-1),
+            torch.stack([-sin_h,  cos_h], dim=-1)
+            ), dim=-2
+        )  # [2, 2]
 
-        rot_mat = np.array(
-            [[np.cos(angle), np.sin(angle)], [-np.sin(angle), np.cos(angle)]]
-        )
-        out_trajectory[..., :2] = (
-            np.matmul(out_trajectory[..., :2], rot_mat) + origin
-        )
-        out_trajectory[..., 2] += angle
+        ref_traj_pos = (
+            torch.matmul(out_trajectory[..., :2], rot_mat) + center_cur_pos
+        )  # [G, Ts, 2]
+        ref_traj_heading = out_trajectory[..., 2] + center_cur_heading  # [G, Ts]
 
-        ego_state: CarlaAgentState = center_history_states[-1]
-
-        # Pre-allocate arrays for storing results
-        rollout_center = out_trajectory[..., :2]  # (G, T, 2)
-        rollout_angle = out_trajectory[..., 2]      # (G, T)
-        rollout_speed = np.zeros((G, T))      # (G, T)
-        rollout_acc = np.zeros((G, T))        # (G, T)
-        rollout_angular_vel = np.zeros((G, T)) # (G, T)
-        rollout_angular_acc = np.zeros((G, T)) # (G, T)
-        center_shape = np.full((G, 2), (ego_state.car_footprint.width, ego_state.car_footprint.length))  # (2,)
-
-        for g in range(G):            
-            timesteps = _get_fixed_timesteps(ego_state, len(out_trajectory[g]) * self.dt, self.dt)
-            global_states = [StateSE2.deserialize(pose) for pose in out_trajectory[g]]
-
-            speed_2d, acc_2d = _get_velocity_and_acceleration(
-                global_states, center_history_states, timesteps
-            )
-            rollout_speed[g] = np.linalg.norm(speed_2d, axis=-1)
-            rollout_acc[g] = np.linalg.norm(acc_2d, axis=-1)
-
-        vertices = compute_agents_vertices(
-            center=rollout_center,
-            angle=rollout_angle,
-            shape=center_shape,
-        ) # global coord, right-hand
-
+        # rollout the reference trajectory
+        rollout_center, rollout_angle, rollout_speed, rollout_acc, rollout_angular_vel, rollout_angular_acc, vertices = self.center_rollout_model.propagate(
+            ref_traj_pos, ref_traj_heading, center_history_states
+        ) 
+        
         return rollout_center, rollout_angle, rollout_speed, rollout_acc, rollout_angular_vel, rollout_angular_acc, vertices
 
     def get_other_vehicle_rollout(self, nearby_actors, num_future_frames=80, near_lane_change=True):
