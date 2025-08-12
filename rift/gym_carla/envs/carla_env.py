@@ -143,7 +143,7 @@ class CarlaEnv(gym.Env):
         # init scenario
         self.ego_vehicle = scenario.ego_vehicle
         self.scenario_manager.load_scenario(scenario, config)  # The scenario manager only controls the RouteScenario
-        self.EgoDone
+
         # init for ego controller
         self.route = self.scenario_manager.route_scenario.route  # the global route
         self.gps_route = self.scenario_manager.route_scenario.gps_route  # the global gps route

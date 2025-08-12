@@ -34,10 +34,7 @@ class E2ERecorder():
         self.cam_size = (400, 300)   # for individual camera views
         self.bev_size = (400, 600)   # for bird’s-eye view
         self.text_color=(0, 0, 0)
-        self.command_list = [
-            "VOID", "LEFT", "RIGHT", "STRAIGHT",
-            "LANE FOLLOW", "CHANGE LANE LEFT", "CHANGE LANE RIGHT"
-        ]
+        self.command_list = ['Turn Left', 'Turn Right', 'Go Straight', 'Lane Follow', 'CHANGELANELEFT', 'CHANGELANERIGHT']
         self.coor2topdown = np.array([[5.48993772e+02,  0.00000000e+00, -2.56000000e+02,  1.28000000e+04],
                          [ 0.00000000e+00, -5.48993772e+02, -2.56000000e+02,  1.28000000e+04],
                          [ 0.00000000e+00,  0.00000000e+00, -1.00000000e+00,  5.00000000e+01],

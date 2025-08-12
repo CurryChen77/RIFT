@@ -87,7 +87,6 @@ class SparseDriveAgent(autonomous_agent.AutonomousAgent):
         self.test_pipeline = Compose(self.test_pipeline)
         self.data_aug_conf = cfg.data_aug_conf
 
-        self.lat_ref, self.lon_ref = 42.0, 2.0
         self.lidar2cam = {
         'CAM_FRONT':np.array([[ 1.  ,  0.  ,  0.  ,  0.  ],
                                 [ 0.  ,  0.  ,  1.  ,  0.  ],
@@ -187,7 +186,8 @@ class SparseDriveAgent(autonomous_agent.AutonomousAgent):
             self.save_path.mkdir(parents=True, exist_ok=True)
 
     def _init(self):   
-        self._route_planner = RoutePlanner(4.0, 50.0, lat_ref=self.lat_ref, lon_ref=self.lon_ref)
+        self._route_planner = RoutePlanner(4.0, 50.0)
+        self.lat_ref, self.lon_ref = self._route_planner.lat_ref, self._route_planner.lon_ref
         self._route_planner.set_route(self._global_plan, True)
         self.initialized = True
         self.metric_info = {}

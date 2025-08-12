@@ -3,6 +3,8 @@ from collections import deque
 
 import numpy as np
 import math
+
+from rift.scenario.tools.carla_data_provider import CarlaDataProvider
 EARTH_RADIUS_EQUA = 6378137.0
 
 
@@ -50,9 +52,7 @@ class RoutePlanner(object):
         self.scale = np.array([111324.60662786, 111319.490945]) # for carla 9.10
 
         self.debug = Plotter(debug_size)
-        # self.lat_ref, self.lon_ref = self._get_latlon_ref()
-        self.lat_ref = lat_ref
-        self.lon_ref = lon_ref
+        self.lat_ref, self.lon_ref = CarlaDataProvider.get_gps_info()
 
     def set_route(self, global_plan, gps=False, global_plan_world = None):
         self.route.clear()

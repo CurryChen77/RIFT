@@ -54,7 +54,7 @@ class VadAgent(autonomous_agent.AutonomousAgent):
 
         # init the parameters
         self._im_transform = T.Compose([T.ToTensor(), T.Normalize(mean=[0.485,0.456,0.406], std=[0.229,0.224,0.225])])
-        self.lat_ref, self.lon_ref = 42.0, 2.0
+
         self.lidar2img = {
         'CAM_FRONT':np.array([[ 1.14251841e+03,  8.00000000e+02,  0.00000000e+00, -9.52000000e+02],
                               [ 0.00000000e+00,  4.50000000e+02, -1.14251841e+03, -8.09704417e+02],
@@ -153,7 +153,8 @@ class VadAgent(autonomous_agent.AutonomousAgent):
         self.prev_control_cache = []
 
     def _init(self):
-        self._route_planner = RoutePlanner(4.0, 50.0, lat_ref=self.lat_ref, lon_ref=self.lon_ref)
+        self._route_planner = RoutePlanner(4.0, 50.0)
+        self.lat_ref, self.lon_ref = self._route_planner.lat_ref, self._route_planner.lon_ref
         self._route_planner.set_route(self._global_plan, True)
         self.initialized = True
         self.metric_info = {}
