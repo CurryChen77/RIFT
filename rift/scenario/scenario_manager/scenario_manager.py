@@ -5,6 +5,7 @@
 @Date    : 2023/10/4
 """
 import time
+import numpy as np
 import py_trees
 from typing import List
 from datetime import datetime
@@ -12,6 +13,7 @@ from collections import defaultdict
 
 import carla
 from rift.cbv.planning.pluto.utils.nuplan_state_utils import CarlaAgentState
+from rift.gym_carla.utils.common import convert_log_lat
 from rift.scenario.scenario_manager.route_scenario import RouteScenario
 from rift.scenario.tools.carla_data_provider import CarlaDataProvider
 from rift.scenario.tools.metrics import compute_ego_critical_metrics
@@ -216,9 +218,10 @@ class ScenarioManager(object):
         for CBV_id, CBV in cur_CBVs.items():
             cbv_data = self.CBVs_data[CBV_id]
             current_loc = CarlaDataProvider.get_location(CBV)
-            current_raw_acc = CarlaDataProvider.get_acceleration(CBV)
-            current_acc = current_raw_acc.length()
-            current_speed = CarlaDataProvider.get_velocity(CBV).length()
+            current_state = CarlaDataProvider.get_current_state(CBV)
+            current_acc = current_state.dynamic_car_state.rear_axle_acceleration_2d
+            current_acc_mag = current_acc.magnitude()
+            current_speed_mag = current_state.dynamic_car_state.rear_axle_velocity_2d.magnitude()
 
             # record CBVs game time
             CBVs_total_game_time += delta_time
@@ -226,18 +229,18 @@ class ScenarioManager(object):
             # Collect target speed of the CBVs vehicle setting
             target_speed = CBV.get_speed_limit() / 3.6  # Convert to m/s
             CBVs_target_speed.append(target_speed)
-            CBVs_delta_speed.append(target_speed - current_speed)
+            CBVs_delta_speed.append(target_speed - current_speed_mag)
             
             # Update speed and acceleration
-            cbv_data['speed'].append(current_speed)
-            cbv_data['acc'].append(current_acc)
+            cbv_data['speed'].append(current_speed_mag)
+            cbv_data['acc'].append(current_acc_mag)
             
             # Calculate jerk (with safe handling of initial state)
             if len(cbv_data['acc']) >= 2:
                 prev_acc = cbv_data['acc'][-2]
             else:
                 prev_acc = 0.0
-            current_jerk = (current_acc - prev_acc) / delta_time if delta_time > 1e-6 else 0.0
+            current_jerk = (current_acc_mag - prev_acc) / delta_time if delta_time > 1e-6 else 0.0
             cbv_data['jerk'].append(current_jerk)
             
             # Calculate progress (distance from last location)
@@ -251,7 +254,7 @@ class ScenarioManager(object):
                 CBVs_off_road_time += delta_time
 
             # Check uncomfortable status
-            if not((-4.05 < current_raw_acc.x < 2.40) and (-4.89 < current_raw_acc.y < 4.89) and (-8.37 < current_jerk < 8.37)):
+            if not((-4.05 < current_acc.x < 2.40) and (-4.89 < current_acc.y < 4.89) and (-8.37 < current_jerk < 8.37)):
                 CBVs_uncomfortable_time += delta_time
 
             # Update collision count
