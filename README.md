@@ -18,7 +18,7 @@
 
 ##  :sparkles: News
 
-- **`2025-07-22`** Support for E2E AV is available [here](https://github.com/CurryChen77/RIFT/tree/feature/e2e), with [doc](https://github.com/CurryChen77/RIFT/blob/feature/e2e/rift/ego/b2d/README.md)📄!
+- **`2025-07-22`** Support for E2E AV is available now, with [doc](https://github.com/CurryChen77/RIFT/blob/main/rift/ego/b2d/README.md)📄!
 - **`2025-05-07`** Explore our project page, now live [here](https://currychen77.github.io/RIFT)🔗!
 - **`2025-05-07`** Our paper is available on [arXiv](https://arxiv.org/abs/2505.03344)📄!
 

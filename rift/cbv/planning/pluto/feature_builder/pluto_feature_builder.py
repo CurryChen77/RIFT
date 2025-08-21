@@ -157,11 +157,11 @@ class PlutoFeatureBuilder():
             velocity[t] = rotate_round_z_axis(
                 state.dynamic_car_state.rear_axle_velocity_2d.array,
                 -state.rear_axle.heading,
-            )
+            )  # world to local
             acceleration[t] = rotate_round_z_axis(
                 state.dynamic_car_state.rear_axle_acceleration_2d.array,
                 -state.rear_axle.heading,
-            )
+            )  # world to local
             agent_extent = agent.bounding_box.extent
             shape[t] = np.array([agent_extent.y * 2., agent_extent.x * 2.])  # width and length
 
