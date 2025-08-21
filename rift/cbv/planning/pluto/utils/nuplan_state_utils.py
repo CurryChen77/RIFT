@@ -41,17 +41,23 @@ class CarlaAgentState(EgoState):
     @classmethod
     def build_from_agent(cls, center_vehicle: carla.Vehicle, vehicle_parameters: VehicleParameters, vehicle_type: TrackedObjectType, time_point: TimePoint):
         center_trans = CarlaDataProvider.get_transform(center_vehicle)
+        center_pitch = np.deg2rad(center_trans.rotation.pitch)
+        center_yaw = -np.deg2rad(center_trans.rotation.yaw)  # left-hand to right-hand
 
         center_velocity = CarlaDataProvider.get_velocity(center_vehicle)
+        center_velocity_np = np.array([center_velocity.x, -center_velocity.y, center_velocity.z])  # left-hand to right-hand
+        longitudinal_velocity, lateral_velocity = convert_log_lat(center_pitch, center_yaw, center_velocity_np)
 
         center_acc = CarlaDataProvider.get_acceleration(center_vehicle)
+        center_acc_np = np.array([center_acc.x, -center_acc.y, center_acc.z])  # left-hand to right-hand
+        longitudinal_acc, lateral_acc = convert_log_lat(center_pitch, center_yaw, center_acc_np)
 
         angular_vel = -np.deg2rad(center_vehicle.get_angular_velocity().z)  # from degree/s to rad/s
 
         # necessary value of Ego state
-        center = StateSE2(x=center_trans.location.x, y=-center_trans.location.y, heading=-np.deg2rad(center_trans.rotation.yaw))
-        center_velocity_2d = StateVector2D(x=center_velocity.x, y=-center_velocity.y)  # y is negative due to the left-hand coordinate system in CARLA
-        center_acceleration_2d = StateVector2D(x=center_acc.x, y=-center_acc.y)  # y is negative due to the left-hand coordinate system in CARLA
+        center = StateSE2(x=center_trans.location.x, y=-center_trans.location.y, heading=center_yaw)
+        center_velocity_2d = StateVector2D(x=longitudinal_velocity, y=lateral_velocity)  # in local coordinate
+        center_acceleration_2d = StateVector2D(x=longitudinal_acc, y=lateral_acc)  # in local coordinate
 
         angular_accel = 0.0  # no API to get the angular acceleration, assumed to be 0
 
@@ -70,20 +76,21 @@ class CarlaAgentState(EgoState):
 
         # Build the dynamic car state
         dynamic_car_state = DynamicCarState.build_from_rear_axle(
-            rear_axle_to_center_dist=rear_axle_to_center_dist,    # global
-            rear_axle_velocity_2d=rear_axle_velocity_2d,          # global
-            rear_axle_acceleration_2d=rear_axle_acceleration_2d,  # global
+            rear_axle_to_center_dist=rear_axle_to_center_dist,
+            rear_axle_velocity_2d=rear_axle_velocity_2d,          # local coordinate
+            rear_axle_acceleration_2d=rear_axle_acceleration_2d,  # local coordinate
             angular_velocity=angular_vel,
             angular_acceleration=angular_accel,
         )
 
         # agent state for normal background vehicle
         agent_extent = center_vehicle.bounding_box.extent
+        agent_global_velocity_2d = StateVector2D(x=center_velocity.x, y=-center_velocity.y)  # in global coordinate
         agent_state = AgentState(
             metadata=SceneObjectMetadata(token=center_vehicle.type_id, track_token=center_vehicle.type_id, track_id=-1, timestamp_us=time_point.time_us),
             tracked_object_type=vehicle_type,
             oriented_box=OrientedBox(center, agent_extent.x * 2., agent_extent.y * 2., agent_extent.z * 2.),
-            velocity=center_velocity_2d,
+            velocity=agent_global_velocity_2d,
         )
 
         return cls(
@@ -94,6 +101,23 @@ class CarlaAgentState(EgoState):
             is_in_auto_mode=True,
             agent_state=agent_state
         )
+
+
+def convert_log_lat(pitch: float, yaw: float, vec_np: np.ndarray):
+    """
+        Convert the vehicle transform directly to longitudinal and lateral velocity
+    """
+
+    forward = np.array([np.cos(pitch) * np.cos(yaw), np.cos(pitch) * np.sin(yaw), np.sin(pitch)])
+
+    up = np.array([0, 0, 1])  # Assuming z is upwards
+    right = np.cross(up, forward)
+    right = right / np.linalg.norm(right)  # Normalize the right vector
+
+    longitudinal = np.dot(vec_np, forward)
+    lateral = np.dot(vec_np, right)
+
+    return longitudinal, lateral
 
 
 @numba.njit
