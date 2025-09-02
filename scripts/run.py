@@ -51,13 +51,15 @@ def setup_simulation(args, carla_device_id):
     args.port = find_free_port(args.base_port + 150 * carla_device_id)
 
     # the command to start the carla server
-    cmd1 = f"{os.path.join(carla_path, 'CarlaUE4.sh')} -RenderOffScreen -nosound -carla-rpc-port={args.port} -graphicsadapter={carla_device_id}"
+    cmd1 = f"{os.path.join(carla_path, 'CarlaUE4.sh')} -nosound -carla-rpc-port={args.port}"
     if not args.render:
         cmd1 += " -nullrhi"
         print(">> Running Carla without GPU!", flush=True)
+    else:
+        cmd1 += f" -RenderOffScreen -graphicsadapter={carla_device_id}"
     # user the subprocess.Popen to start the server in the background
     server = subprocess.Popen(cmd1, shell=True, preexec_fn=os.setsid)
-    print(">> Starting Carla:", cmd1, server.returncode, flush=True)
+    print(">> Starting Carla:", cmd1, flush=True)
     # Register cleanup operations when exiting
     atexit.register(cleanup, server.pid)
     time.sleep(5)
@@ -86,7 +88,7 @@ def setup_simulation(args, carla_device_id):
             print(e, flush=True)
             attempts += 1
             time.sleep(2)
-            attempts = 0
+
     attempts = 0
     num_max_restarts = 40
     while attempts < num_max_restarts:
