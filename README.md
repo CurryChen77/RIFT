@@ -99,12 +99,16 @@ git clone git@github.com:CurryChen77/RIFT.git
 cd RIFT
 ```
 
-**Step 4: Install packages**
+**Step 4: Install main packages**
 
 ```bash
 pip install -r requirements.txt
 pip install -e .
 ```
+
+**Step 5: Install E2E packages**
+
+Follow the documentation [here](./rift/ego/b2d/README.md) to install E2E-related packages.
 
 ## Data and Ckpt
 

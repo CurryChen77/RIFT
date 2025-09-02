@@ -7,10 +7,10 @@
 from typing import Dict, List
 
 import numpy as np
-from team_code.sparsedrive_b2d_agent import SparseDriveAgent
+from rift.ego.b2d.team_code.sparsedrive_b2d_agent import SparseDriveAgent
 from rift.ego.base_policy import EgoBasePolicy
 from rift.ego.b2d.team_code.vad_b2b_agent import VadAgent
-from team_code.uniad_b2d_agent import UniadAgent
+from rift.ego.b2d.team_code.uniad_b2d_agent import UniadAgent
 from rift.ego.b2d.utils.agent_wrapper import AgentWrapper, validate_sensor_configuration
 from rift.ego.b2d.utils.watchdog import Watchdog
 from rift.scenario.tools.route_scenario_configuration import RouteScenarioConfiguration

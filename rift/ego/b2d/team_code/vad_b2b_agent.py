@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # -*- encoding: utf-8 -*-
 import json
-import shutil
 import time
 import cv2
 from utils.e2e_recorder import E2ERecorder
@@ -11,10 +10,9 @@ import math
 import torch
 import carla
 import numpy as np
-from PIL import Image
 from torchvision import transforms as T
-from team_code.pid_controller import PIDController
-from team_code.planner import RoutePlanner
+from rift.ego.b2d.team_code.pid_controller import PIDController
+from rift.ego.b2d.team_code.planner import RoutePlanner
 from mmcv import Config
 from mmcv.models import build_model
 from mmcv.utils import (get_dist_info, init_dist, load_checkpoint,

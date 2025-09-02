@@ -13,7 +13,6 @@ from collections import defaultdict
 
 import carla
 from rift.cbv.planning.pluto.utils.nuplan_state_utils import CarlaAgentState
-from rift.gym_carla.utils.common import convert_log_lat
 from rift.scenario.scenario_manager.route_scenario import RouteScenario
 from rift.scenario.tools.carla_data_provider import CarlaDataProvider
 from rift.scenario.tools.metrics import compute_ego_critical_metrics

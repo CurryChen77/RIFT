@@ -15,8 +15,8 @@ import pickle
 from utils.e2e_recorder import E2ERecorder
 
 import carla
-from team_code.pid_controller import PIDController
-from team_code.planner import RoutePlanner
+from rift.ego.b2d.team_code.pid_controller import PIDController
+from rift.ego.b2d.team_code.planner import RoutePlanner
 from rift.ego.b2d.utils import autonomous_agent
 from rift.scenario.tools.carla_data_provider import CarlaDataProvider
 
