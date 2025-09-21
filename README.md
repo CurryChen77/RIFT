@@ -3,7 +3,7 @@
 </div>
 
 
-# RIFT: Closed-Loop RL Fine-Tuning for Realistic and Controllable Traffic Simulation
+# RIFT: Group-Relative RL Fine-Tuning for Realistic and Controllable Traffic Simulation
 
 <div align="left">
     <a href="https://arxiv.org/abs/2505.03344"><img src="https://img.shields.io/badge/Paper-arXiv-b31b1b?logo=arxiv&logoColor=white?style=flat-square" alt="Custom badge" style="width: 110px;"></a>     
@@ -24,7 +24,7 @@
 
 This repository contains the implementation of the paper.
 
-> RIFT: Closed-Loop RL Fine-Tuning for Realistic and Controllable Traffic Simulation<br>
+> RIFT: Group-Relative RL Fine-Tuning for Realistic and Controllable Traffic Simulation<br>
 >
 > [Keyu Chen](https://currychen77.github.io/)<sup>1</sup> , [Wenchao Sun](https://scholar.google.com/citations?user=yd-sMoQAAAAJ&hl=zh-CN&oi=ao)<sup>1</sup>,  [Hao Cheng](https://github.com/AutoChengh)<sup>1</sup>, [Sifa Zheng](http://www.svm.tsinghua.edu.cn/essay/80/1835.html)<sup>1</sup><br>
 >
@@ -34,7 +34,7 @@ If you find our work useful, Please give us a star 🌟!
 
 <div style="text-align: center;">   <img style="border: 0px solid gray; width: 100%;" src="./assets/intro.png"/> </div>
 
-:dizzy: *RIFT achieve realistic and controllable traffic simulation by combining open-loop IL pre-training in a data-driven simulator for realism with closed-loop RL fine-tuning in a physics-based simulator for controllability.*
+:dizzy: *RIFT achieve realistic and controllable traffic simulation by combining IL pre-training in a data-driven simulator for realism with RL fine-tuning in a physics-based simulator for controllability.*
 
 ## Method
 
