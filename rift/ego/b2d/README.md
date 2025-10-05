@@ -20,7 +20,7 @@
 - **STEP 4: Install the mmdet_plugin/opt for SparseDrive**
     ```bash
     cd adzoo/sparsedrive/mmdet3d_plugin/ops
-    python3 setup.py develop
+    python setup.py develop
     ```
 
 - **STEP 5: Prepare pretrained weights.**
