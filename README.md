@@ -203,11 +203,14 @@ CUDA_VISIBLE_DEVICES=0 python scripts/run.py --ego_cfg pdm_lite.yaml --cbv_cfg r
 If you find our paper useful, please kindly cite us via:
 
 ```BibTex
-@article{chen2025riftclosedlooprlfinetuning,
-    title={RIFT: Closed-Loop RL Fine-Tuning for Realistic and Controllable Traffic Simulation},
-    author={Keyu Chen and Wenchao Sun and Hao Cheng and Sifa Zheng},
-    journal={arXiv preprint arXiv:2505.03344},
-    year={2025}
+@misc{chen2025riftgrouprelativerlfinetuning,
+      title={RIFT: Group-Relative RL Fine-Tuning for Realistic and Controllable Traffic Simulation}, 
+      author={Keyu Chen and Wenchao Sun and Hao Cheng and Sifa Zheng},
+      year={2025},
+      eprint={2505.03344},
+      archivePrefix={arXiv},
+      primaryClass={cs.RO},
+      url={https://arxiv.org/abs/2505.03344}, 
 }
 ```
 
