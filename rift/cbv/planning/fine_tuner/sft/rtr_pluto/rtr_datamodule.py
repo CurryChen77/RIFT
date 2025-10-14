@@ -56,6 +56,7 @@ class RTRCollate:
         advantage_to_be_batched = [CBV_data_dict['CBVs_advantage'] for CBV_data_dict in batch]
         reward_sum_to_be_batched = [CBV_data_dict['CBVs_reward_sum'] for CBV_data_dict in batch]
         old_log_prob_to_be_batched = [CBV_data_dict['CBVs_old_log_prob'] for CBV_data_dict in batch]
+        action_mode_to_be_batched = [CBV_data_dict['CBVs_action_mode'] for CBV_data_dict in batch]
 
         # teacher infos
         batched_teacher_infos = [CBV_data_dict['CBVs_teacher_infos'] for CBV_data_dict in batch]
@@ -66,6 +67,7 @@ class RTRCollate:
             'advantage_torch': torch.stack(advantage_to_be_batched, dim=0),
             'reward_sum_torch': torch.stack(reward_sum_to_be_batched, dim=0),
             'old_log_prob_torch': torch.stack(old_log_prob_to_be_batched, dim=0),
+            'action_mode_torch': torch.stack(action_mode_to_be_batched, dim=0),
             'teacher_infos': torch.stack(batched_teacher_infos, dim=0),  # (bs, 5)
         }
 
@@ -126,6 +128,7 @@ class RTRDataModule(LightningDataModule):
         undones = 1.0 - torch.from_numpy(np.stack(self.buffer.get_key_data('CBVs_done'), axis=0)).float()  # (bs, )
         unterminated = 1.0 - torch.from_numpy(np.stack(self.buffer.get_key_data('CBVs_terminated'), axis=0)).float()
         old_log_prob = torch.from_numpy(np.stack(self.buffer.get_key_data('CBVs_actions_old_log_prob'), axis=0))  # (bs, )
+        action_mode = torch.from_numpy(np.stack(self.buffer.get_key_data('CBVs_actions_mode'), axis=0))  # (bs, )
 
         chunk_size = self.train_batch_size
 
@@ -173,7 +176,8 @@ class RTRDataModule(LightningDataModule):
             'CBVs_state': cur_state.cpu(),
             'CBVs_advantage': advantages.cpu(),
             'CBVs_reward_sum': reward_sums.cpu(),
-            'CBVs_old_log_prob': old_log_prob.cpu()
+            'CBVs_old_log_prob': old_log_prob.cpu(),
+            'CBVs_action_mode': action_mode.cpu()
         })
 
     def train_dataloader(self) -> TRAIN_DATALOADERS:

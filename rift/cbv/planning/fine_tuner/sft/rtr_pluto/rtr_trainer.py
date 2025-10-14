@@ -141,11 +141,10 @@ class LightningTrainer(L.LightningModule):
         best_r_idx = max_idx // probability.size(-1)
         best_m_idx = max_idx % probability.size(-1)
 
-        # get the best trajectory
-        best_trajectory = candidate_trajectories[torch.arange(bs), best_r_idx, best_m_idx]  # (bs, T, 6)
+        old_mode_index = batch['action_mode_torch']  # (bs, 2), [R_idx, M_idx]
 
         # ppo loss
-        ppo_loss = self.get_ppo_loss(probability, best_r_idx, best_m_idx, batch)
+        ppo_loss = self.get_ppo_loss(probability, old_mode_index, batch)
 
         # teacher loss
         teacher_loss = self.get_teacher_loss(candidate_trajectories, probability, best_r_idx, best_m_idx, batch)
@@ -153,7 +152,9 @@ class LightningTrainer(L.LightningModule):
         # the weight of PPO loss (follow the default setting of RTR)
         lambda_rl = 5.0
 
-        # drivable area loss (on best trajectory)
+        # # drivable area loss (on best trajectory)
+        # # get the best trajectory
+        # best_trajectory = candidate_trajectories[torch.arange(bs), best_r_idx, best_m_idx]  # (bs, T, 6)
         # drivable_area_loss = self.get_drivable_area_loss(best_trajectory, cur_data)
 
         loss = (
@@ -169,13 +170,13 @@ class LightningTrainer(L.LightningModule):
             # "drivable_area_loss": drivable_area_loss.item(),
         }
 
-    def get_ppo_loss(self, probability, best_r_idx, best_m_idx, batch):
+    def get_ppo_loss(self, probability, old_mode_index, batch):
 
         bs, R, M = probability.shape
         log_action_probs = F.log_softmax(probability.view(bs, -1), dim=1).clamp(min=-1e6)  # (bs, R*M)
         log_action_probs = log_action_probs.view(bs, R, M)  # (bs, R, M)
         # log-probability of the chosen action
-        cur_log_prob = log_action_probs[torch.arange(bs), best_r_idx, best_m_idx]  # (bs,)
+        cur_log_prob = log_action_probs[torch.arange(bs), old_mode_index[:, 0], old_mode_index[:, 1]]  # (bs,)
         entropy = -torch.sum(torch.exp(log_action_probs) * log_action_probs, dim=(1, 2))
         
         state = batch['state_torch']  # (bs, )

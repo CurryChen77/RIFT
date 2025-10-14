@@ -8,6 +8,7 @@ reward_model: 'dense' # dense or sparse or none
 data_keys:
  - CBVs_actions
  - CBVs_actions_old_log_prob
+ - CBVs_actions_mode
  - CBVs_obs
  - CBVs_next_obs
  - CBVs_reward

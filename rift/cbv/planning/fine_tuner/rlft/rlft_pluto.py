@@ -92,6 +92,7 @@ class RLFTPluto(PLUTO):
     def get_action(self, CBVs_obs_list, infos, deterministic=False) -> Dict[str, List[Dict[Any, Any]]]:
         CBVs_action = [{} for _ in range(self.num_scenario)]
         CBVs_old_log_prob = [{} for _ in range(self.num_scenario)]
+        CBVs_action_mode = [{} for _ in range(self.num_scenario)]
 
         for info, CBVs_obs in zip(infos, CBVs_obs_list):
             if not CBVs_obs:
@@ -105,8 +106,9 @@ class RLFTPluto(PLUTO):
                 # get the action for the inference
                 (
                     CBVs_action[env_id][CBV_id],
-                    CBVs_old_log_prob[env_id][CBV_id]
-                ) = self._get_action(pluto_output, CBV_obs, env_id, CBV_id, index)
+                    CBVs_old_log_prob[env_id][CBV_id],
+                    CBVs_action_mode[env_id][CBV_id]
+                ) = self._get_action(pluto_feature_data, pluto_output, CBV_obs, env_id, CBV_id, index)
             
         # render part
         if self._render:
@@ -128,20 +130,22 @@ class RLFTPluto(PLUTO):
         
         data = {
             'CBVs_actions': CBVs_action,
-            'CBVs_actions_old_log_prob': CBVs_old_log_prob
+            'CBVs_actions_old_log_prob': CBVs_old_log_prob,
+            'CBVs_actions_mode': CBVs_action_mode
         }
 
         return data
 
-    def _get_action(self, pluto_output, CBV_obs, env_id, CBV_id, index):
+    def _get_action(self, pluto_feature_data, pluto_output, CBV_obs, env_id, CBV_id, index):
         CBV = CarlaDataProvider.get_actor_by_id(CBV_id)
         CBV_history_states = CarlaDataProvider.get_history_state(CBV)
         CBV_state = CBV_history_states[-1]
+        r_valid_mask = pluto_feature_data["reference_line"]["valid_mask"][index].any(-1)  # [valid_R, ]
 
         candidate_trajectories = (
-            pluto_output["candidate_trajectories"][index].cpu().numpy().astype(np.float64)
-        )
-        probability = pluto_output["probability"][index].cpu().numpy()
+            pluto_output["candidate_trajectories"][index][r_valid_mask].cpu().numpy().astype(np.float64)
+        )  # [valid_R, M, T, 3]
+        probability = pluto_output["probability"][index][r_valid_mask].cpu().numpy()  # [valid_R, M]
 
         if self._use_prediction:
             predictions = pluto_output["output_prediction"][index].cpu().numpy()
@@ -154,7 +158,7 @@ class RLFTPluto(PLUTO):
             else None
         )
 
-        candidate_trajectories, learning_based_score = self._trim_candidates(
+        candidate_trajectories, learning_based_score, sorted_orig_indices, n_ref, n_mode = self._trim_candidates(
             candidate_trajectories,
             probability,
             CBV_state,
@@ -164,7 +168,12 @@ class RLFTPluto(PLUTO):
         # select the best trajectory only based on learing based score
         best_candidate_idx = learning_based_score.argmax()
 
+        # get best candidate old log prob
         old_log_prob = np.log(learning_based_score[best_candidate_idx] + 1e-12)  # take log for the score that have been softmax
+        # get best candidate original index
+        orig_idx = int(sorted_orig_indices[best_candidate_idx])
+        r_index = orig_idx // n_mode
+        m_index = orig_idx % n_mode
 
         trajectory = candidate_trajectories[best_candidate_idx, 1:]  # [79, 3]
         local_trajectory = self._global_to_local(trajectory, CBV_state)
@@ -183,7 +192,7 @@ class RLFTPluto(PLUTO):
             self._render_data[env_id]["candidate_index_list"].append(best_candidate_idx)
             self._render_data[env_id]["predictions_list"].append(predictions)
 
-        return (throttle, steer, brake), old_log_prob
+        return (throttle, steer, brake), old_log_prob, (r_index, m_index)
 
     def set_route_planner(self, route_planner:CBVRoutePlanner):
         self.route_planner = route_planner

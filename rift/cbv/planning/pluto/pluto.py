@@ -164,7 +164,7 @@ class PLUTO(CBVBasePolicy):
             else None
         )
 
-        candidate_trajectories, learning_based_score = self._trim_candidates(
+        candidate_trajectories, learning_based_score, _, _, _ = self._trim_candidates(
             candidate_trajectories,
             probability,
             CBV_state,
@@ -208,15 +208,17 @@ class PLUTO(CBVBasePolicy):
             sorted_candidate_trajectories: (n_ref * n_mode, 80, 3)
             sorted_probability: (n_ref * n_mode)
         """
-        if len(candidate_trajectories.shape) == 4:
-            n_ref, n_mode, T, C = candidate_trajectories.shape
-            candidate_trajectories = candidate_trajectories.reshape(-1, T, C)
-            flatten_probability = probability.reshape(-1)
+
+        n_ref, n_mode, T, C = candidate_trajectories.shape
+        candidate_trajectories = candidate_trajectories.reshape(-1, T, C)
+        flatten_probability = probability.reshape(-1)
+        orig_indices = np.arange(n_ref * n_mode)
 
         sorted_idx = np.argsort(-flatten_probability)
         sorted_candidate_trajectories = candidate_trajectories[sorted_idx][: self._topk]
         sorted_probability = flatten_probability[sorted_idx][: self._topk]
         sorted_probability = softmax(sorted_probability)
+        sorted_orig_indices = orig_indices[sorted_idx][: self._topk]
 
         if ref_free_trajectory is not None:
             sorted_candidate_trajectories = np.concatenate(
@@ -224,6 +226,7 @@ class PLUTO(CBVBasePolicy):
                 axis=0,
             )
             sorted_probability = np.concatenate([sorted_probability, [0.25]], axis=0)
+            sorted_orig_indices = np.concatenate([sorted_orig_indices, [-1]], axis=0)
 
         # to global
         origin = ego_state.rear_axle.array
@@ -241,7 +244,7 @@ class PLUTO(CBVBasePolicy):
             axis=-2,
         )
 
-        return sorted_candidate_trajectories, sorted_probability
+        return sorted_candidate_trajectories, sorted_probability, sorted_orig_indices, n_ref, n_mode
 
     def get_control(self, env_id, CBV_id, center_state: CarlaAgentState, local_trajectory: np.ndarray) -> Tuple[float, float, float]:
         local_pos = local_trajectory[:, :2]  # only take the position info

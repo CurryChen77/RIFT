@@ -171,7 +171,7 @@ class SFTPluto(PLUTO):
             else None
         )
 
-        candidate_trajectories, learning_based_score = self._trim_candidates(
+        candidate_trajectories, learning_based_score, _, _, _ = self._trim_candidates(
             candidate_trajectories,
             probability,
             CBV_state,
