@@ -36,6 +36,7 @@
     | :---------------: | :----------------------------------------------------------: | :----------: | :---------------------------: |
     |    resnet50 (required)    | [Hugging Face](https://huggingface.co/rethinklab/Bench2DriveZoo/blob/main/r101_dcn_fcos3d_pretrain.pth)/[Baidu Cloud](https://pan.baidu.com/s/1o7owaQ5G66xqq2S0TldwXQ?pwd=1234) |    98 MB    |   [b2d/ckpt](./ckpt)   |
     | UniAD | [Hugging Face](https://huggingface.co/rethinklab/Bench2DriveZoo/blob/main/uniad_base_b2d.pth)/[Baidu Cloud](https://pan.baidu.com/s/11p9IUGqTax1f4W_qsdLCRw?pwd=1234) |    951 MB     | [b2d/ckpt/uniad](./ckpt/uniad) |
+    | UniAD motion anchor | [GoogleDrive](https://drive.google.com/file/d/123-78TAUuISMOCXNO0qKjU4JmEG8_vkA/view?usp=drive_link) |    4 kb     | [b2d/ckpt/uniad](./ckpt/uniad) | 
     | VAD | [Hugging Face](https://huggingface.co/rethinklab/Bench2DriveZoo/blob/main/vad_b2d_base.pth)/[Baidu Cloud](https://pan.baidu.com/s/1rK7Z_D-JsA7kBJmEUcMMyg?pwd=1234) |    668 MB     | [b2d/ckpt/vad](./ckpt/vad) |
     | SparseDrive | [Google Drive](https://drive.google.com/drive/folders/1AvvNE9585wdBSCvCciAWh-4OkVqIBSis?usp=sharing) |    781 MB     | [b2d/ckpt/sparsedrive](./ckpt/sparsedrive) |
   
