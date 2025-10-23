@@ -12,6 +12,7 @@ from __future__ import print_function
 from enum import Enum
 
 import carla
+import numpy as np
 
 from rift.ego.b2d.utils.sensor_interface import SensorInterface
 from rift.scenario.tools.route_manipulation import downsample_route
@@ -168,3 +169,9 @@ class AutonomousAgent(object):
         output['location'] = vector2list(self.hero_actor.get_transform().location)
         output['rotation'] = vector2list(self.hero_actor.get_transform().rotation, rotation=True)
         return output
+
+    def invert_y(self, position):
+        """Invert the Y axis to match CARLA coordinate system."""
+        pos = np.array(position, dtype=float, copy=True)
+        pos[1] *= -1
+        return pos
