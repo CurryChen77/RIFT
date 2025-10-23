@@ -86,6 +86,9 @@ class RoutePlanner(object):
         if len(self.route) == 1:
             return self.route[0]
 
+        # Important!! inverse y axis to match carla coordinate
+        pos = np.array([gps[0], -gps[1]])
+
         to_pop = 0
         farthest_in_range = -np.inf
         cumulative_distance = 0.0
@@ -95,7 +98,7 @@ class RoutePlanner(object):
                 break
 
             cumulative_distance += np.linalg.norm(self.route[i][0] - self.route[i-1][0])
-            distance = np.linalg.norm(self.route[i][0] - gps)
+            distance = np.linalg.norm(self.route[i][0] - pos)
 
             if distance <= self.min_distance and distance > farthest_in_range:
                 farthest_in_range = distance

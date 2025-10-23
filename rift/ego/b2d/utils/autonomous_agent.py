@@ -147,7 +147,7 @@ class AutonomousAgent(object):
         """
         # init the hero_actor
         self.hero_actor = hero_actor
-        ds_ids = downsample_route(global_plan_world_coord, 50)
+        ds_ids = downsample_route(global_plan_world_coord, 2)  # Important!!: downsample with 2 meters interval to keep dense
         self._global_plan_world_coord = [(global_plan_world_coord[x][0], global_plan_world_coord[x][1]) for x in ds_ids]
         self._global_plan = [global_plan_gps[x] for x in ds_ids]
         self._plan_gps_HACK = global_plan_gps
