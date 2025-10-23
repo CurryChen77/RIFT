@@ -169,9 +169,3 @@ class AutonomousAgent(object):
         output['location'] = vector2list(self.hero_actor.get_transform().location)
         output['rotation'] = vector2list(self.hero_actor.get_transform().rotation, rotation=True)
         return output
-
-    def invert_y(self, position):
-        """Invert the Y axis to match CARLA coordinate system."""
-        pos = np.array(position, dtype=float, copy=True)
-        pos[1] *= -1
-        return pos

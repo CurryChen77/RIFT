@@ -304,7 +304,7 @@ class SparseDriveAgent(autonomous_agent.AutonomousAgent):
         acceleration = input_data['IMU'][1][:3]
         angular_velocity = input_data['IMU'][1][3:6]
   
-        pos = self.invert_y(self.gps_to_location(gps))
+        pos = self.gps_to_location(gps)
         near_node, near_command = self._route_planner.run_step(pos)
 
         if (math.isnan(compass) == True): #It can happen that the compass sends nan for a few frames
