@@ -24,11 +24,11 @@
     ```
 
 - **STEP 5: Prepare pretrained weights.**
-    create directory `ckpts`
+    create directory `ckpt`
 
     ```bash
     ## Back to b2d folder
-    mkdir ckpts 
+    mkdir ckpt
     ```
     **Download Model Ckpt**
 
