@@ -42,7 +42,7 @@ If you find our work useful, Please give us a star 🌟!
 
 ### TODO List
 
-- [ ] full model checkpoint
+- [x] full model checkpoint
 - [x] E2E AV (UniAD, VAD, SparseDrive)
 - [x] training code
 - [x] initial repo & paper
@@ -131,10 +131,9 @@ For the **E2E AV Checkpoint**, please check the [documentation](./rift/ego/b2d/R
 
 * **CBV Checkpoint**
 
-|        CBV Name        |                         Google Drive                         | Approx. Size |                 Storage Place                  |
+|        Name        |                         Google Drive                         | Approx. Size |                 Storage Place                  |
 | :--------------------: | :----------------------------------------------------------: | :----------: | :--------------------------------------------: |
-|         Pluto          | [Link](https://drive.google.com/drive/folders/18bXqs8nT1gr3-xnTUlxGN2jxnQV5BqFQ?usp=drive_link) |   51.4 MB    | [Folder](./rift/cbv/planning/model_ckpt/pluto) |
-| Other Fine-tuned model |                         Coming Soon                          |      -       |    [Folder](./rift/cbv/planning/model_ckpt)    |
+|         Pluto & Fine-Tuned Variants          | [Link](https://drive.google.com/drive/folders/1MJf40_1s6XUVvhkQe-VRwGoPGtUdZOMU?usp=sharing) |   166.2 MB    | [Folder](./rift/cbv/planning/model_ckpt/) |
 
 ## Usage
 
