@@ -121,24 +121,18 @@ class CBVRolloutBuffer(BaseBuffer):
         assert self.buffer_full, 'only get the data when the buffer is full'
         return self.buffer_data[key]
     
-    def sample(self, batch_size=1):
+    def sample(self, idx):
         '''
         sample the data from the buffer
         '''
         assert self.buffer_full, 'only sample the data when the buffer is full'
-        assert batch_size <= self.buffer_capacity, 'the batch size should be less than the buffer capacity'
 
-        if batch_size == 1:
-            sample_index = random.randint(0, self.buffer_capacity - 1)
-            sampled_data = {
-                key: deque_data[sample_index]
-                for key, deque_data in self.buffer_data.items()
-            }
-        else:
-            sample_indices = random.sample(range(self.buffer_capacity), batch_size)
-            sampled_data = {
-                key: [deque_data[idx] for idx in sample_indices]
-                for key, deque_data in self.buffer_data.items()
-            }
-        
+        # deterministic fetch when an index (or indices) is provided
+        indices = idx if isinstance(idx, (list, tuple)) else [idx]
+        assert all(0 <= i < self.buffer_capacity for i in indices)
+
+        sampled_data = {
+            key: [deque_data[i] for i in indices] if len(indices) > 1 else deque_data[indices[0]]
+            for key, deque_data in self.buffer_data.items()
+        }
         return sampled_data

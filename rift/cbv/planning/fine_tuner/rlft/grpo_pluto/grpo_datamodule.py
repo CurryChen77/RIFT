@@ -67,10 +67,7 @@ class GRPODataset(Dataset):
         return len(self.buffer)
 
     def __getitem__(self, idx):
-        return self.buffer.sample(1)        
-    
-    def sample(self, batch_size):
-        return self.buffer.sample(batch_size)
+        return self.buffer.sample(idx)   
 
 
 class GRPODataModule(LightningDataModule):
