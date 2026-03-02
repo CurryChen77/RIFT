@@ -154,7 +154,7 @@ def generate_2d_samples(acc_hist_dict, speed_hist_dict, n_samples=1000):
     speed_samples = sample_from_hist(speed_bins, n_samples)
     return np.column_stack((acc_samples, speed_samples))  # Combine into 2D array (n_sample, 2)
 
-def create_alpha_cmap(base_color, name='alpha_cmap'):
+def create_alpha_cmap(base_color, alpha, name='alpha_cmap'):
     """
     Create a colormap with inverted alpha (higher probability → lower alpha, fixed color).
     Args:
@@ -165,11 +165,11 @@ def create_alpha_cmap(base_color, name='alpha_cmap'):
         'red':   [(0.0, rgb[0], rgb[0]), (1.0, rgb[0], rgb[0])],  # Fixed red channel
         'green': [(0.0, rgb[1], rgb[1]), (1.0, rgb[1], rgb[1])],  # Fixed green channel
         'blue':  [(0.0, rgb[2], rgb[2]), (1.0, rgb[2], rgb[2])],  # Fixed blue channel
-        'alpha': [(0.0, 0.0, 0.0), (1.0, 0.5, 0.5)]
+        'alpha': [(0.0, 0.0, 0.0), (1.0, alpha, alpha)]
     }
     return mcolors.LinearSegmentedColormap(name, cmap_dict)
 
-def _draw_kde_contour(ax, data, base_color, levels=10, density_threshold=0.00001):
+def _draw_kde_contour(ax, data, base_color, levels=10, alpha=0.8, density_threshold=0.00001):
     kde = gaussian_kde(data.T)  # Compute the kernel density estimate (KDE)
     x_min, x_max = data[:, 0].min(), data[:, 0].max()  # Get min and max of x-axis data
     y_min, y_max = data[:, 1].min(), data[:, 1].max()  # Get min and max of y-axis data
@@ -199,10 +199,20 @@ def _draw_kde_contour(ax, data, base_color, levels=10, density_threshold=0.00001
     if len(valid_levels) < 2:
         valid_levels = np.linspace(density_threshold, max_density, 2)
 
-    alpha_cmap = create_alpha_cmap(base_color)  # Create the custom colormap
+    alpha_cmap = create_alpha_cmap(base_color, alpha)  # Create the custom colormap
 
     # Draw filled contours
     cs = ax.contourf(X, Y, Z_masked, levels=valid_levels, cmap=alpha_cmap)
+
+
+def _style_main_axis_spines(ax):
+    """Soften axis borders for cleaner PDF/vector rendering."""
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    for side in ['left', 'bottom']:
+        ax.spines[side].set_color('#A8A8A8')
+        ax.spines[side].set_linewidth(1.1)
+    ax.tick_params(axis='both', colors='#565656')
 
 def plot_2d_with_marginals(main_ax,
                            data1, data2, 
@@ -210,6 +220,7 @@ def plot_2d_with_marginals(main_ax,
                            metric_1, metric_2,
                            color1='#b62230',  # Red color for data1
                            color2='#B192B4',  # Blue color for data2
+                           scatter_interval=50,
                            cluster_centers=True):
     """
     Plot 2D scatter plot with marginal histograms and optional cluster centers.
@@ -229,23 +240,23 @@ def plot_2d_with_marginals(main_ax,
     center2 = kmeans2.cluster_centers_[0]
 
     # Draw KDE contours for both datasets
-    _draw_kde_contour(main_ax, data1, base_color=color1, levels=5)
-    _draw_kde_contour(main_ax, data2, base_color=color2, levels=5)
+    _draw_kde_contour(main_ax, data1, base_color=color1, levels=6, alpha=0.8)
+    _draw_kde_contour(main_ax, data2, base_color=color2, levels=5, alpha=1.0)
 
-    # Scatter plot for both datasets
-    main_ax.scatter(data1[::10, 0], data1[::10, 1], s=120, alpha=0.7, c=color1)
-    main_ax.scatter(data2[::10, 0], data2[::10, 1], s=120, alpha=0.7, c=color2)
+    # # Scatter plot for both datasets
+    # main_ax.scatter(data1[::scatter_interval, 0], data1[::scatter_interval, 1], s=100, alpha=0.5, c=color1)
+    # main_ax.scatter(data2[::scatter_interval, 0], data2[::scatter_interval, 1], s=100, alpha=0.5, c=color2)
 
     if cluster_centers:
-        # Draw black lines for cluster centers
-        main_ax.axvline(x=center1[0], color='black', linestyle='-', linewidth=2)
-        main_ax.axhline(y=center1[1], color='black', linestyle='-', linewidth=2)
+        # Draw gray lines for cluster centers
+        main_ax.axvline(x=center1[0], color='gray', linestyle='-', linewidth=2)
+        main_ax.axhline(y=center1[1], color='gray', linestyle='-', linewidth=2)
 
         # Mark cluster centers with circles
         main_ax.plot(center1[0], center1[1], marker='s', markersize=20, 
-                     c=color1, mec='k', mew=1.0, label=ALGOS[algo_1])
+                     c=color1, mec='gray', mew=1.0, label=ALGOS[algo_1])
         main_ax.plot(center2[0], center2[1], marker='s', markersize=20, 
-                     c=color2, mec='k', mew=1.0, label=ALGOS[algo_2])
+                     c=color2, mec='gray', mew=1.0, label=ALGOS[algo_2])
         
         distance = np.linalg.norm(np.array(center1) - np.array(center2))
 
@@ -270,14 +281,21 @@ def plot_2d_with_marginals(main_ax,
     main_ax.set_xlabel(METRICS[metric_1], fontsize=32)
     main_ax.set_ylabel(METRICS[metric_2], fontsize=32)
     main_ax.tick_params(axis='both', which='major', labelsize=28)
+    _style_main_axis_spines(main_ax)
     main_ax.legend(loc='upper right')
 
     # Plot histograms for x-axis (top)
     # x_hist_ax.hist([data1[:,0], data2[:,0]],
     #                bins=30, color=[color1, color2],
     #                alpha=0.6, edgecolor='none', rwidth=2.0, stacked=True)
-    x_hist_ax.hist(data1[:,0], bins=30, color=color1, alpha=0.8, edgecolor='none', rwidth=1.0, density=True)
-    x_hist_ax.hist(data2[:,0], bins=30, color=color2, alpha=0.8, edgecolor='none', rwidth=1.0, density=True)  
+    x_hist_ax.hist(
+        data1[:, 0], bins=30, color=color1, alpha=0.8,
+        density=True, histtype='stepfilled', linewidth=0
+    )
+    x_hist_ax.hist(
+        data2[:, 0], bins=30, color=color2, alpha=0.8,
+        density=True, histtype='stepfilled', linewidth=0
+    )
     x_hist_ax.tick_params(axis='y', left=False, labelleft=False)  # Hide y-axis ticks for top histogram
     
     # Plot histograms for y-axis (right)
@@ -285,10 +303,14 @@ def plot_2d_with_marginals(main_ax,
     #                bins=30, orientation='horizontal',
     #                color=[color1, color2], alpha=0.6,
     #                edgecolor='none', rwidth=2.0, stacked=True)
-    y_hist_ax.hist(data1[:,1], bins=30, orientation='horizontal', 
-                color=color1, alpha=0.8, edgecolor='none', rwidth=1.0, density=True)
-    y_hist_ax.hist(data2[:,1], bins=30, orientation='horizontal', 
-                color=color2, alpha=0.8, edgecolor='none', rwidth=1.0, density=True)
+    y_hist_ax.hist(
+        data1[:, 1], bins=30, orientation='horizontal',
+        color=color1, alpha=0.8, density=True, histtype='stepfilled', linewidth=0
+    )
+    y_hist_ax.hist(
+        data2[:, 1], bins=30, orientation='horizontal',
+        color=color2, alpha=0.8, density=True, histtype='stepfilled', linewidth=0
+    )
     y_hist_ax.tick_params(axis='x', bottom=False, labelbottom=False)  # Hide x-axis ticks for right histogram
 
     # Remove spines for marginal plots
@@ -346,8 +368,26 @@ def plot_all_cluster_centers(main_ax, sample_dict, metric_1, metric_2):
             colors = list(reversed(cmap.hex_colors))
             pts = np.array(pts)
             poly_pts = np.vstack([pts, pts[0]])
-            main_ax.fill(poly_pts[:, 0], poly_pts[:, 1], color=colors[-1], alpha=0.4, zorder=group_order[group])
-            main_ax.plot(poly_pts[:, 0], poly_pts[:, 1], color=colors[-1], linewidth=2, zorder=group_order[group])
+            edge_color = colors[-1]
+            main_ax.fill(poly_pts[:, 0], poly_pts[:, 1], color=edge_color, alpha=0.32, zorder=group_order[group])
+
+            soft_edge_layers = [
+                (18, 0.04),
+                (12, 0.06),
+                (8, 0.10),
+                (4, 0.15),
+            ]
+            for linewidth, alpha in soft_edge_layers:
+                main_ax.plot(
+                    poly_pts[:, 0],
+                    poly_pts[:, 1],
+                    color=edge_color,
+                    linewidth=linewidth,
+                    alpha=alpha,
+                    solid_joinstyle='round',
+                    solid_capstyle='round',
+                    zorder=group_order[group] + 0.05,
+                )
             for i, algo in enumerate(algos):
                 if algo in centers:
                     main_ax.plot(*centers[algo], marker=group_markers[group], markersize=12, color=colors[i], zorder=group_order[group])
@@ -356,6 +396,7 @@ def plot_all_cluster_centers(main_ax, sample_dict, metric_1, metric_2):
     main_ax.set_xlabel(METRICS[metric_1], fontsize=32)
     main_ax.set_ylabel(METRICS[metric_2], fontsize=32)
     main_ax.tick_params(axis='both', which='major', labelsize=28)
+    _style_main_axis_spines(main_ax)
 
     # === Draw quarter elliptical arcs at the lower left of the data bounds ===
     # Use the lower left corner of the current data bounding box as the center
@@ -541,6 +582,7 @@ if __name__ == "__main__":
     output_dir.mkdir(parents=True, exist_ok=True)
     plt.tight_layout()
     plt.savefig(output_dir / f'{metric_1}-{metric_2}.png', dpi=600, bbox_inches='tight')
+    plt.savefig(output_dir / f'{metric_1}-{metric_2}.pdf', dpi=600, bbox_inches='tight')
     plt.show()
 
     plt.close()

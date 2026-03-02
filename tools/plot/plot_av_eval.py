@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 import csv
+import matplotlib.colors as mcolors
 from pathlib import Path
 from matplotlib.lines import Line2D
 
@@ -154,12 +155,17 @@ ip_stds = np.array([item['ip_std'] for item in method_stats])
 x = np.arange(len(methods))
 width = 0.34  # Bar width
 
+
+def rgba(hex_color: str, alpha: float):
+    r, g, b = mcolors.to_rgb(hex_color)
+    return (r, g, b, alpha)
+
 # ==========================================
 # 3. Color palette (color-blind friendly, publication style)
 # ==========================================
 # Deep blue (DS), light gray-cyan (RC), coral red/orange (IP: risk/conflict emphasis)
-color_rc = '#cb7b37'  # Coral orange (for RC, moderate emphasis)
-color_ip = '#93186e'   # Deep magenta (for IP, stronger emphasis)
+color_rc = "#814186"  # Coral orange (for RC, moderate emphasis)
+color_ip = '#b62230'   # Deep magenta (for IP, stronger emphasis)
 
 # ==========================================
 # 4. Plotting
@@ -195,16 +201,26 @@ error_style = {
     'capthick': 1.0,
 }
 
+# Scale down error-bar length for a cleaner visual presentation.
+error_bar_scale = 0.5
+
+# Build a visual hierarchy: deemphasize all methods, then highlight RIFT.
+rift_index = methods.index('RIFT (ours)') if 'RIFT (ours)' in methods else None
+rc_facecolors = [rgba(color_rc, 0.7) for _ in methods]
+ip_facecolors = [rgba(color_ip, 0.7) for _ in methods]
+if rift_index is not None:
+    rc_facecolors[rift_index] = rgba(color_rc, 0.9)
+    ip_facecolors[rift_index] = rgba(color_ip, 0.9)
+
 rects_rc = ax.bar(
     x - width / 2,
     rc_means,
     width,
-    yerr=rc_stds,
+    yerr=rc_stds * error_bar_scale,
     error_kw=error_style,
     label='ΔRC / RC (PDM-Lite) (%)',
-    color=color_rc,
-    linewidth=0.9,
-    alpha=0.7,
+    color=rc_facecolors,
+    linewidth=1.0,
     zorder=3,
     # hatch='///',
     edgecolor='#FFFFFF',
@@ -213,13 +229,13 @@ rects_ip = ax.bar(
     x + width / 2,
     ip_means,
     width,
-    yerr=ip_stds,
+    yerr=ip_stds * error_bar_scale,
     error_kw=error_style,
     label='ΔIP / IP (PDM-Lite) (%)',
-    color=color_ip,
-    linewidth=0.9,
-    alpha=0.8,
+    color=ip_facecolors,
+    linewidth=1.0,
     zorder=3,
+    edgecolor='#FFFFFF',
 )
 
 # Add planner-wise evidence points (3 planners) for each method
@@ -234,7 +250,7 @@ for idx, item in enumerate(method_stats):
         ax.scatter(
             rc_x[planner_idx] + planner_offsets[planner_idx],
             item['rc_by_planner'][planner_idx],
-            s=52,
+            s=40,
             marker=point_marker,
             color=point_color,
             edgecolors='none',
@@ -245,7 +261,7 @@ for idx, item in enumerate(method_stats):
         ax.scatter(
             ip_x[planner_idx] + planner_offsets[planner_idx],
             item['ip_by_planner'][planner_idx],
-            s=52,
+            s=40,
             marker=point_marker,
             color=point_color,
             edgecolors='none',
@@ -255,11 +271,30 @@ for idx, item in enumerate(method_stats):
         )
 
 # Highlight RIFT bars to emphasize the target method
-if 'RIFT (ours)' in methods:
-    rift_index = methods.index('RIFT (ours)')
-    for bar_collection in [rects_rc, rects_ip]:
-        bar_collection[rift_index].set_linewidth(2)
-        bar_collection[rift_index].set_edgecolor("#3D3C3D")
+if rift_index is not None:
+    # for bar_collection in [rects_rc, rects_ip]:
+    #     bar_collection[rift_index].set_linewidth(2.2)
+    #     bar_collection[rift_index].set_edgecolor("#3D3C3D")
+    #     bar_collection[rift_index].set_zorder(5)
+
+    # Minimal annotation for the highlighted method only.
+    rift_rc = rects_rc[rift_index]
+    rift_ip = rects_ip[rift_index]
+    for bar in [rift_rc, rift_ip]:
+        h = bar.get_height()
+        offset = 0.35 if h >= 0 else -0.35
+        va = 'bottom' if h >= 0 else 'top'
+        ax.text(
+            bar.get_x() + bar.get_width() / 2,
+            h + offset,
+            f'{h:.1f}',
+            ha='center',
+            va=va,
+            fontsize=10,
+            fontweight='bold',
+            color='#2F2F2F',
+            zorder=6,
+        )
 
 # ==========================================
 # 5. Figure refinement
@@ -338,6 +373,7 @@ ax.add_artist(bar_legend)
 
 # Add horizontal grid lines (behind bars)
 ax.grid(axis='y', linestyle='--', alpha=0.3, zorder=0)
+ax.axhline(0.0, color='#8E8E8E', linewidth=1.1, alpha=0.65, zorder=1)
 
 # Remove top/right spines for a cleaner conference-style look
 ax.spines['top'].set_visible(False)
